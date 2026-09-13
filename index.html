@@ -50,6 +50,24 @@
   }
   .btnrow { display:flex; gap:8px; margin-top:9px; flex-wrap:wrap; }
 
+  .lrow { margin-bottom:13px; }
+  .llabel { font-size:11.5px; opacity:.55; letter-spacing:1px;
+    text-transform:uppercase; margin-bottom:6px; }
+  .lswatches { display:flex; gap:7px; flex-wrap:wrap; }
+  .sw {
+    width:34px; height:34px; border-radius:50%;
+    border:2px solid rgba(255,255,255,.18); padding:0;
+  }
+  .sw.on { border-color:#ff9d4d; box-shadow:0 0 11px rgba(255,157,77,.75); }
+  .chip {
+    padding:8px 14px; border-radius:17px; font-size:12.5px;
+    background:rgba(255,255,255,.07); color:#fff;
+    border:1px solid rgba(255,255,255,.16);
+  }
+  .chip.on {
+    background:rgba(255,157,77,.22); border-color:#ff9d4d; font-weight:bold;
+  }
+
   .deck {
     display:flex; align-items:center; gap:10px;
     padding:11px 12px; border-radius:11px; margin-bottom:8px;
@@ -480,6 +498,7 @@ function requeueSoon(q){
 // =====================================================
 const SAVE_DECKS = "nightfall.decks";
 const SAVE_ACTIVE = "nightfall.active";
+const SAVE_LOOK = "nightfall.look";
 
 function save(key, value){
   try { localStorage.setItem(key, value); } catch(e) {}
@@ -708,16 +727,86 @@ function limb(len,c,t){
   return p;
 }
 const person = new THREE.Group();
-const SKIN=0xe8bd97, SHIRT=0x8b5cf6, PANTS=0x2f3a52;
-const torso=boxMesh(.75,1,.42,SHIRT); torso.position.y=.5; person.add(torso);
-const head=boxMesh(.55,.55,.55,SKIN); head.position.y=1.32; person.add(head);
-const hair=boxMesh(.6,.18,.6,0x3d2519); hair.position.y=1.62; person.add(hair);
-const armL=limb(.8,SKIN,.22); armL.position.set(-.48,.95,0);
-const armR=limb(.8,SKIN,.22); armR.position.set(.48,.95,0);
-const legL=limb(.85,PANTS,.26); legL.position.set(-.19,.02,0);
-const legR=limb(.85,PANTS,.26); legR.position.set(.19,.02,0);
+
+// ---- what you can change ----
+const SKINS  = [0xf1d3b4, 0xe8bd97, 0xc98f63, 0x9c6340, 0x6f4428, 0x4a2d1c];
+const SHIRTS = [0x8b5cf6, 0xe0554f, 0x3b82f6, 0x22a06b, 0xf0a830, 0xe6e6ea, 0x2b2b33, 0xe05fa0];
+const PANTS  = [0x2f3a52, 0x1c1c24, 0x4a3726, 0x3c5a45, 0x6b3550, 0x8a8f9c];
+const HAIRS  = [0x1a1512, 0x3d2519, 0x7a4a24, 0xc9932f, 0xe8e2d8, 0xb03a3a, 0x5a3fa0, 0x2f7d78];
+
+// hair shapes — "short", "long", "bun", "afro", "none"
+const HAIR_STYLES = ["short", "long", "bun", "afro", "none"];
+
+const look = {
+  build: 0,        // 0 = broader, 1 = slimmer
+  skin: 1,
+  shirt: 0,
+  pants: 0,
+  hair: 1,
+  hairStyle: 0
+};
+
+const torso = boxMesh(.75,1,.42, SHIRTS[0]); torso.position.y=.5; person.add(torso);
+const head  = boxMesh(.55,.55,.55, SKINS[1]); head.position.y=1.32; person.add(head);
+
+// all the hair pieces exist at once; we just show the right ones
+const hairGroup = new THREE.Group(); person.add(hairGroup);
+const hairCap  = boxMesh(.6,.18,.6, HAIRS[1]);  hairCap.position.y = 1.62;
+const hairBack = boxMesh(.6,.55,.18, HAIRS[1]); hairBack.position.set(0,1.24,-.24);
+const hairBun  = boxMesh(.3,.3,.3, HAIRS[1]);   hairBun.position.set(0,1.78,-.2);
+const hairPoof = boxMesh(.82,.5,.82, HAIRS[1]); hairPoof.position.y = 1.6;
+hairGroup.add(hairCap, hairBack, hairBun, hairPoof);
+
+const armL=limb(.8, SKINS[1], .22); armL.position.set(-.48,.95,0);
+const armR=limb(.8, SKINS[1], .22); armR.position.set(.48,.95,0);
+const legL=limb(.85, PANTS[0], .26); legL.position.set(-.19,.02,0);
+const legR=limb(.85, PANTS[0], .26); legR.position.set(.19,.02,0);
 person.add(armL,armR,legL,legR);
 scene.add(person);
+
+// limb() wraps the real mesh in a group, so the material
+// we want to recolour is one level down
+function limbMat(g){ return g.children[0].material; }
+
+function applyLook(){
+  const skin = SKINS[look.skin];
+  torso.material.color.setHex(SHIRTS[look.shirt]);
+  head.material.color.setHex(skin);
+  limbMat(armL).color.setHex(skin);
+  limbMat(armR).color.setHex(skin);
+  limbMat(legL).color.setHex(PANTS[look.pants]);
+  limbMat(legR).color.setHex(PANTS[look.pants]);
+
+  const hc = HAIRS[look.hair];
+  [hairCap, hairBack, hairBun, hairPoof].forEach(m => m.material.color.setHex(hc));
+
+  const style = HAIR_STYLES[look.hairStyle];
+  hairCap.visible  = style === "short" || style === "long" || style === "bun";
+  hairBack.visible = style === "long";
+  hairBun.visible  = style === "bun";
+  hairPoof.visible = style === "afro";
+
+  // the two builds: slimmer is narrower in the shoulders,
+  // slightly taller, and stands with a narrower stance
+  const slim = look.build === 1;
+  torso.scale.set(slim ? .86 : 1, slim ? 1.03 : 1, slim ? .95 : 1);
+  armL.scale.setScalar(slim ? .92 : 1);
+  armR.scale.setScalar(slim ? .92 : 1);
+  legL.position.x = slim ? -.16 : -.19;
+  legR.position.x = slim ?  .16 :  .19;
+  legL.scale.set(slim ? .9 : 1, 1, slim ? .9 : 1);
+  legR.scale.set(slim ? .9 : 1, 1, slim ? .9 : 1);
+}
+
+function saveLook(){ save(SAVE_LOOK, JSON.stringify(look)); }
+
+// Object.assign copies the saved values over the defaults, so an
+// older save that's missing a field still gets a sensible one
+try {
+  const rawLook = load(SAVE_LOOK);
+  if (rawLook) Object.assign(look, JSON.parse(rawLook));
+} catch(e) {}
+applyLook();
 
 // ---- the blade — you carry one from the start ----
 // Each tier reaches further and swings faster. Buying an
@@ -1822,7 +1911,7 @@ function buildMenu(){
   const menu = document.getElementById("menu");
   menu.innerHTML =
     '<h1>NIGHTFALL</h1><div class="sub">answer your way to morning</div>' +
-    '<div class="ver">v1.8 &middot; the way home</div>' +
+    '<div class="ver">v1.9 &middot; make your character</div>' +
 
     '<div class="panel"><h3>How it works</h3><ul>' +
     '<li>Every right answer is a choice: <b>feed the fire</b> or <b>count toward dawn</b>.</li>' +
@@ -1833,6 +1922,10 @@ function buildMenu(){
     '<li>A wanderer turns up every few nights and sells powers and better swords. Find him before he leaves.</li>' +
     '<li>Questions you miss come back around, and you review them at the end.</li>' +
     '</ul></div>' +
+
+    '<div class="panel"><h3>Your character</h3>' +
+    '<div id="lookpanel"></div>' +
+    '</div>' +
 
     '<div class="panel"><h3>Your question sets</h3>' +
     '<div id="decklist"></div>' +
@@ -1845,8 +1938,56 @@ function buildMenu(){
 
   document.getElementById("play").onclick = startGame;
   document.getElementById("newdeck").onclick = () => { editing = -1; renderEditor(); };
+  renderLook();
   renderDecks();
   renderEditor();
+}
+
+// ---- character customiser ----
+// Every row is generated from the colour tables above, so adding
+// a new shirt colour to SHIRTS makes a new swatch appear here
+// with no other changes.
+function hexStr(n){ return "#" + n.toString(16).padStart(6,"0"); }
+
+function swatchRow(label, list, key){
+  let html = '<div class="lrow"><div class="llabel">' + label + '</div><div class="lswatches">';
+  list.forEach((c, i) => {
+    html += '<button class="sw' + (look[key] === i ? ' on' : '') +
+            '" data-key="' + key + '" data-i="' + i +
+            '" style="background:' + hexStr(c) + '"></button>';
+  });
+  return html + '</div></div>';
+}
+
+function chipRow(label, names, key){
+  let html = '<div class="lrow"><div class="llabel">' + label + '</div><div class="lswatches">';
+  names.forEach((n, i) => {
+    html += '<button class="chip' + (look[key] === i ? ' on' : '') +
+            '" data-key="' + key + '" data-i="' + i + '">' + n + '</button>';
+  });
+  return html + '</div></div>';
+}
+
+function renderLook(){
+  const box = document.getElementById("lookpanel");
+  if (!box) return;
+
+  box.innerHTML =
+    chipRow("Build", ["broad", "slim"], "build") +
+    swatchRow("Skin", SKINS, "skin") +
+    chipRow("Hair", ["short", "long", "bun", "afro", "none"], "hairStyle") +
+    swatchRow("Hair colour", HAIRS, "hair") +
+    swatchRow("Shirt", SHIRTS, "shirt") +
+    swatchRow("Trousers", PANTS, "pants");
+
+  box.querySelectorAll("[data-key]").forEach(b => {
+    b.onclick = () => {
+      look[b.dataset.key] = Number(b.dataset.i);
+      applyLook();
+      saveLook();
+      renderLook();          // redraw so the highlight moves
+    };
+  });
 }
 
 // ---- the list of sets ----
