@@ -164,6 +164,19 @@
   }
 
   /* only lights up when you're standing at the fire with wood */
+  #homearrow {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    display:none; text-align:center; pointer-events:none;
+    margin-top:-92px;
+  }
+  #homeicon {
+    font-size:30px; color:#ffb257;
+    text-shadow:0 0 16px rgba(255,150,60,.95), 0 2px 6px #000;
+  }
+  #homedist {
+    font-size:11.5px; color:#ffb257; opacity:.85;
+    letter-spacing:1px; margin-top:1px; text-shadow:0 2px 6px #000;
+  }
   #strikebtn {
     position:fixed; right:22px; bottom:44px; display:none;
     width:118px; height:118px; border-radius:50%;
@@ -277,6 +290,7 @@
   <div id="dawnlabel">until dawn</div>
   <div id="woodline">wood: 0</div>
   <div id="coinline">0 coins</div>
+  <div id="homearrow"><div id="homeicon">▲</div><div id="homedist"></div></div>
   <div id="buffline"></div>
   <div id="clock">0:00</div>
   <div id="infobtn"><svg viewBox="0 0 24 24" fill="none">
@@ -657,6 +671,29 @@ const flame = new THREE.Mesh(new THREE.ConeGeometry(.62,1.5,7),
   new THREE.MeshBasicMaterial({ color:0xff8a30 }));
 flame.position.y = 1.15;
 campfire.add(flame);
+
+// ---- the beacon ----
+// A tall column of light over the fire so you can find your way
+// back from anywhere in the arena. AdditiveBlending makes it
+// glow rather than look like a solid grey pillar.
+const beacon = new THREE.Mesh(
+  new THREE.CylinderGeometry(.34, .95, 26, 10, 1, true),
+  new THREE.MeshBasicMaterial({
+    color:0xff9d4d, transparent:true, opacity:.16,
+    blending:THREE.AdditiveBlending, side:THREE.DoubleSide,
+    depthWrite:false
+  })
+);
+beacon.position.y = 13;
+campfire.add(beacon);
+
+function updateBeacon(t){
+  const life = fuel/FIRE_MAX;
+  beacon.visible = life > .02;
+  // thins out and dims as the fire dies — a warning you can see
+  beacon.material.opacity = (.07 + life*.16) + Math.sin(t*.003)*.02;
+  beacon.scale.set(.5 + life*.6, 1, .5 + life*.6);
+}
 scene.add(campfire);
 
 
@@ -1666,6 +1703,45 @@ function updateSpawning(dt){
 }
 
 const camTarget = new THREE.Vector3();
+
+// ---- the way home ----
+// The arrow has to point relative to where the camera is looking,
+// not to world north — otherwise it lies every time you rotate.
+// Forward on screen is (sin camAngle, cos camAngle); screen-right
+// is that turned 90°. Project the player-to-fire vector onto both
+// and atan2 gives the angle to rotate the arrow by.
+const homeArrow = document.getElementById("homearrow");
+const homeIcon  = document.getElementById("homeicon");
+const homeDist  = document.getElementById("homedist");
+
+function updateHomeArrow(){
+  const dx = -player.x, dz = -player.z;          // fire sits at the origin
+  const dist = Math.hypot(dx, dz);
+
+  // only show it once you're outside the firelight
+  if (dist < fireRadius() + 1.5){
+    homeArrow.style.display = "none";
+    return;
+  }
+  homeArrow.style.display = "block";
+
+  // same forward/right vectors the movement code uses, so the
+  // arrow agrees with which way the joystick sends you
+  const fwdX = Math.sin(camAngle),  fwdZ = Math.cos(camAngle);
+  const rgtX = -Math.cos(camAngle), rgtZ = Math.sin(camAngle);
+  const along = dx*fwdX + dz*fwdZ;
+  const side  = dx*rgtX + dz*rgtZ;
+
+  const deg = Math.atan2(side, along) * 180 / Math.PI;
+  homeIcon.style.transform = "rotate(" + deg + "deg)";
+  homeDist.textContent = Math.round(dist) + "m to the fire";
+
+  // urgent when the fire is low and you're far from it
+  const low = fuel/FIRE_MAX < .3;
+  homeIcon.style.color = low ? "#ff6b6b" : "#ffb257";
+  homeDist.style.color = low ? "#ff6b6b" : "#ffb257";
+}
+
 function updateCamera(){
   const dist=11, height=8.5;
   const wx = player.x - Math.sin(camAngle)*dist;
@@ -1693,6 +1769,7 @@ function setGameUI(on){
 function showMenu(){
   playing = false; studying = false;
   infoOpen = false; document.getElementById("infopanel").style.display = "none";
+  document.getElementById("homearrow").style.display = "none";
   document.getElementById("menu").style.display = "block";
   document.getElementById("quiz").style.display = "none";
   document.getElementById("over").style.display = "none";
@@ -1715,6 +1792,7 @@ function startGame(){
 function gameOver(){
   playing = false; studying = false;
   infoOpen = false; document.getElementById("infopanel").style.display = "none";
+  document.getElementById("homearrow").style.display = "none";
   document.getElementById("quiz").style.display = "none";
   if (nightNumber > bestNight){ bestNight = nightNumber; decks[activeDeck].best = bestNight; saveDecks(); }
 
@@ -1744,7 +1822,7 @@ function buildMenu(){
   const menu = document.getElementById("menu");
   menu.innerHTML =
     '<h1>NIGHTFALL</h1><div class="sub">answer your way to morning</div>' +
-    '<div class="ver">v1.7 &middot; safe ring &amp; clearer monsters</div>' +
+    '<div class="ver">v1.8 &middot; the way home</div>' +
 
     '<div class="panel"><h3>How it works</h3><ul>' +
     '<li>Every right answer is a choice: <b>feed the fire</b> or <b>count toward dawn</b>.</li>' +
@@ -1897,6 +1975,8 @@ function animate(t){
   if (playing){
     updateSky(dt);
     updateSafeRing(t);
+    updateBeacon(t);
+    updateHomeArrow();
 
     if (studying){
       updateFire(dt, t);
