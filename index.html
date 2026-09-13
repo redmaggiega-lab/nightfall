@@ -92,11 +92,41 @@
 
   /* ---------- HUD ---------- */
   #hud { position:fixed; inset:0; display:none; pointer-events:none; }
-  #clock { position:absolute; top:14px; right:16px; font-size:16px;
+  #clock { position:absolute; top:14px; right:64px; font-size:16px;
     font-variant-numeric:tabular-nums; text-shadow:0 2px 10px #000; }
   #clock .day { font-weight:bold; }
   #clock .sep { opacity:.4; margin:0 7px; }
   #clock .time { opacity:.75; }
+
+  #infobtn {
+    position:absolute; top:7px; right:12px;
+    width:34px; height:34px; border-radius:50%;
+    background:rgba(200,164,255,.15);
+    border:1px solid rgba(201,164,255,.45);
+    display:flex; align-items:center; justify-content:center;
+    pointer-events:auto;
+  }
+  #infobtn svg { width:20px; height:20px; display:block; }
+  #infopanel {
+    position:fixed; inset:0; z-index:60; display:none;
+    background:rgba(6,4,12,.93); padding:26px 20px;
+    overflow-y:auto; pointer-events:auto;
+  }
+  #infopanel h2 { font-size:21px; color:#c9a4ff; margin-bottom:3px; }
+  #infopanel .isub { font-size:12.5px; opacity:.6; margin-bottom:18px; font-style:italic; }
+  #infopanel .prow {
+    border-left:2px solid rgba(201,164,255,.45);
+    padding:8px 0 8px 12px; margin-bottom:13px;
+  }
+  #infopanel .pname { font-size:14.5px; font-weight:bold; }
+  #infopanel .icost { float:right; color:#ffd257; font-weight:normal; font-size:13px; }
+  #infocoins { font-size:14px; color:#ffd257; font-weight:bold; margin-bottom:16px; }
+  #infopanel .pdesc { font-size:12.5px; opacity:.66; line-height:1.5; margin-top:2px; }
+  #infoclose {
+    display:block; width:100%; padding:14px; margin-top:6px;
+    border:none; border-radius:26px; font-size:15px; font-weight:bold;
+    background:#ff9d4d; color:#2b1a0c;
+  }
   #phase { position:absolute; top:34px; right:16px; font-size:19px; font-weight:bold;
     text-shadow:0 2px 10px #000; }
   #hearts { position:absolute; top:14px; left:16px; font-size:21px; }
@@ -126,17 +156,36 @@
     border-radius:50%; background:rgba(255,255,255,.55); }
 
   #study {
-    position:fixed; right:26px; bottom:48px; display:none;
-    width:110px; height:110px; border-radius:50%;
+    position:fixed; right:26px; bottom:170px; display:none;
+    width:96px; height:96px; border-radius:50%;
     background:rgba(126,200,255,.2); border:2px solid rgba(126,200,255,.78);
     flex-direction:column; align-items:center; justify-content:center;
     font-size:13px; font-weight:bold; text-align:center; line-height:1.25;
   }
 
   /* only lights up when you're standing at the fire with wood */
+  #strikebtn {
+    position:fixed; right:22px; bottom:44px; display:none;
+    width:118px; height:118px; border-radius:50%;
+    background:rgba(255,120,120,.18); border:2px solid rgba(255,150,150,.8);
+    align-items:center; justify-content:center;
+    font-size:15px; font-weight:bold; letter-spacing:1px;
+    text-shadow:0 2px 8px #000;
+  }
+  #strikebtn.cooling { opacity:.34; border-color:rgba(255,150,150,.3); }
+  #strikebtn.ready {
+    background:rgba(255,90,90,.42);
+    border-color:#ff8a8a;
+    box-shadow:0 0 22px rgba(255,90,90,.7);
+    animation:strikepulse .7s ease-in-out infinite;
+  }
+  @keyframes strikepulse {
+    0%,100% { transform:scale(1); }
+    50%     { transform:scale(1.07); }
+  }
   #feedbtn {
-    position:fixed; right:26px; bottom:172px; display:none;
-    width:92px; height:92px; border-radius:50%;
+    position:fixed; right:30px; bottom:284px; display:none;
+    width:84px; height:84px; border-radius:50%;
     background:rgba(255,140,60,.14); border:2px solid rgba(255,157,77,.35);
     flex-direction:column; align-items:center; justify-content:center;
     font-size:12px; font-weight:bold; text-align:center; line-height:1.25;
@@ -154,14 +203,30 @@
   #wizpick h2 { font-size:24px; margin-bottom:4px; color:#c9a4ff; }
   #wizpick .line { font-size:13px; opacity:.7; margin-bottom:20px; font-style:italic; }
   .power {
-    display:block; width:100%; padding:16px; margin-bottom:11px; border-radius:13px;
+    display:block; width:100%; padding:16px 58px 16px 16px; margin-bottom:11px;
+    border-radius:13px; position:relative;
     font-size:16px; font-weight:bold; color:#fff; text-align:left;
     background:rgba(160,110,255,.16); border:2px solid rgba(178,140,255,.75);
   }
   .power small { display:block; font-weight:normal; font-size:12.5px; opacity:.78; margin-top:4px; }
+  .power .pcost {
+    position:absolute; top:50%; right:14px; transform:translateY(-50%);
+    font-size:15px; color:#ffd257;
+  }
+  .power .pcost::after { content:" ◉"; font-size:11px; }
+  .power.locked { opacity:.34; border-color:rgba(178,140,255,.28); }
+
+  #purse { font-size:14px; color:#ffd257; margin-top:9px; font-style:normal; opacity:1; }
+  #leaveshop {
+    display:block; width:100%; padding:15px; margin-top:6px;
+    border:none; border-radius:26px; font-size:15px; font-weight:bold;
+    background:rgba(255,255,255,.14); color:#fff;
+  }
+  #coinline { position:absolute; top:144px; left:16px; font-size:14px;
+    font-weight:bold; color:#ffd257; }
 
   #buffline {
-    position:absolute; top:146px; left:16px; font-size:12px; color:#c9a4ff; line-height:1.5;
+    position:absolute; top:168px; left:16px; font-size:12px; color:#c9a4ff; line-height:1.5;
   }
 
   /* ---------- QUIZ ---------- */
@@ -211,16 +276,32 @@
   <div id="dawnbar"><div id="dawnfill"></div></div>
   <div id="dawnlabel">until dawn</div>
   <div id="woodline">wood: 0</div>
+  <div id="coinline">0 coins</div>
   <div id="buffline"></div>
   <div id="clock">0:00</div>
+  <div id="infobtn"><svg viewBox="0 0 24 24" fill="none">
+    <path d="M12 2 L6 17 L18 17 Z" fill="#b78cff" stroke="#d9c2ff" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M4 17.6 h16 a1 1 0 0 1 0 3 H4 a1 1 0 0 1 0-3 Z" fill="#8f63e0" stroke="#d9c2ff" stroke-width="1.1"/>
+    <circle cx="12.6" cy="11" r="1.05" fill="#ffe27a"/>
+    <circle cx="10.4" cy="14.2" r=".75" fill="#ffe27a"/>
+  </svg></div>
   <div id="phase">Night 1</div>
   <div id="warn"></div>
   <div id="banner"></div>
 </div>
 
 <div id="stickzone"><div id="stick"><div id="knob"></div></div></div>
+<div id="strikebtn">STRIKE</div>
 <div id="study">STUDY</div>
 <div id="feedbtn"><span id="feednum">0</span><span>FEED</span></div>
+
+<div id="infopanel">
+  <h2>The Wanderer's gifts</h2>
+  <div class="isub">cut monsters down for coins, then spend them when he turns up</div>
+  <div id="infocoins"></div>
+  <div id="infolist"></div>
+  <button id="infoclose">back to the night</button>
+</div>
 
 <div id="wizpick">
   <h2>the wanderer</h2>
@@ -512,6 +593,44 @@ const ground = new THREE.Mesh(
 ground.rotation.x = -Math.PI/2;
 scene.add(ground);
 
+// ---- the safe ring ----
+// A flat circle outline on the ground showing exactly how far
+// the fire pushes them back. It's built at radius 1 and then
+// scaled every frame, which is far cheaper than rebuilding
+// the geometry each time the fire changes size.
+const safeRing = new THREE.Mesh(
+  new THREE.RingGeometry(.94, 1, 72),
+  new THREE.MeshBasicMaterial({
+    color:0xffb257, transparent:true, opacity:.55, side:THREE.DoubleSide
+  })
+);
+safeRing.rotation.x = -Math.PI/2;
+safeRing.position.y = .06;
+scene.add(safeRing);
+
+// a soft filled glow just inside the line
+const safeFill = new THREE.Mesh(
+  new THREE.RingGeometry(.72, .94, 72),
+  new THREE.MeshBasicMaterial({
+    color:0xff9d4d, transparent:true, opacity:.13, side:THREE.DoubleSide
+  })
+);
+safeFill.rotation.x = -Math.PI/2;
+safeFill.position.y = .05;
+scene.add(safeFill);
+
+function updateSafeRing(t){
+  const r = fireRadius();
+  if (r < .5){ safeRing.visible = false; safeFill.visible = false; return; }
+  safeRing.visible = true; safeFill.visible = true;
+  safeRing.scale.set(r, r, 1);
+  safeFill.scale.set(r, r, 1);
+  // pulse gently, and fade as the fire dies
+  const life = fuel/FIRE_MAX;
+  safeRing.material.opacity = (.34 + life*.3) + Math.sin(t*.004)*.07;
+  safeFill.material.opacity = .06 + life*.1;
+}
+
 for (let i = 0; i < 46; i++){
   const a = (i/46)*Math.PI*2 + Math.random()*.08;
   const r = ARENA - 1 - Math.random()*4;
@@ -563,7 +682,89 @@ const legR=limb(.85,PANTS,.26); legR.position.set(.19,.02,0);
 person.add(armL,armR,legL,legR);
 scene.add(person);
 
+// ---- the blade — you carry one from the start ----
+// Each tier reaches further and swings faster. Buying an
+// upgrade just moves swordTier up; the numbers come from
+// this table, so there's one place to rebalance.
+const SWORDS = [
+  { name:"Rusted Blade",  reach:3.20, gap:340, color:0x9aa2ad, glow:0x8899aa },
+  { name:"Iron Blade",    reach:3.70, gap:280, color:0xdfe6f2, glow:0xbcd4ff },
+  { name:"Ember Blade",   reach:4.30, gap:220, color:0xffb877, glow:0xff9040 },
+  { name:"Dawnbreaker",   reach:5.00, gap:170, color:0xffe9a8, glow:0xffd257 }
+];
+
+const sword = new THREE.Group();
+const blade = boxMesh(.1,.95,.1, SWORDS[0].color);
+blade.position.y = .55;
+const guard = boxMesh(.38,.09,.13,0x8a6a3a);
+guard.position.y = .07;
+const grip = boxMesh(.11,.26,.11,0x4a3320);
+grip.position.y = -.1;
+sword.add(blade, guard, grip);
+const swordGlow = new THREE.PointLight(SWORDS[0].glow, .6, 3.2, 2);
+swordGlow.position.y = .6;
+sword.add(swordGlow);
+// The right arm is 0.8 tall centred at y=0.95, so its hand
+// sits at roughly y=0.55. The sword group's origin is at the
+// grip, so putting the group there puts the handle in his fist.
+sword.position.set(.49, .56, .05);
+const REST_X = .22, REST_Z = -.16;   // angled forward, not straight up
+sword.rotation.x = REST_X;
+sword.rotation.z = REST_Z;
+person.add(sword);
+
 const player = { x:0, z:6, facing:0, walkCycle:0, health:MAX_HEALTH, hurtTimer:0 };
+
+// sword state
+let swordTier = 0;
+let swingTimer = 0;     // counts down through the swing animation
+let swingCooldown = 0;  // gap between strikes, so a swarm still wins
+let swingLive = 0;      // blade is still dangerous mid-arc
+const SWING_TIME = 260;
+let kills = 0;
+let coins = 0;
+
+function applySwordLook(){
+  const s = SWORDS[swordTier];
+  blade.material.color.setHex(s.color);
+  swordGlow.color.setHex(s.glow);
+  swordGlow.intensity = .6 + swordTier*.22;
+}
+
+// ---- swinging the blade ----
+// A swing catches everything inside your reach at once, so
+// getting surrounded isn't automatically a death sentence —
+// but the cooldown means you can't just mash it.
+function strike(){
+  if (!playing || studying || swingCooldown > 0) return;
+
+  swingTimer = SWING_TIME;
+  swingCooldown = SWORDS[swordTier].gap;
+  strikeBtn.classList.add("cooling");
+
+  const reach = SWORDS[swordTier].reach;
+  let hit = 0;
+  for (let i = enemies.length-1; i >= 0; i--){
+    const e = enemies[i];
+    if (e.fleeing) continue;
+    if (Math.hypot(player.x - e.x, player.z - e.z) < reach){
+      scene.remove(e.mesh);
+      enemies.splice(i,1);
+      hit++;
+    }
+  }
+
+  if (hit > 0){
+    kills += hit;
+    // later nights pay better — night 1 gives 1 each, night 5 gives 3
+    coins += hit * (1 + Math.floor((nightNumber-1)/2));
+    if (hit > 1) warn(hit + " at once!");
+    updateHUD();
+  }
+  // the blade stays live for the length of the swing, so anything
+  // that walks into the arc still gets caught
+  swingLive = SWING_TIME;
+}
 
 
 // =====================================================
@@ -593,13 +794,29 @@ function spawnEnemy(){
   const a = Math.random()*Math.PI*2, d = ARENA-4;
   const x = Math.cos(a)*d, z = Math.sin(a)*d;
   const g = new THREE.Group();
-  const body = boxMesh(.62,1.15,.45,0x241c2e); body.position.y=.58; g.add(body);
-  const h = boxMesh(.5,.5,.5,0x191322); h.position.y=1.42; g.add(h);
-  const eyeMat = new THREE.MeshBasicMaterial({ color:0xff4d4d });
-  const e1 = new THREE.Mesh(new THREE.BoxGeometry(.1,.08,.06), eyeMat);
-  const e2 = new THREE.Mesh(new THREE.BoxGeometry(.1,.08,.06), eyeMat);
+
+  // Cold pale teal against the warm orange firelight — opposite
+  // sides of the colour wheel, so they stand out at any distance.
+  // emissive means they glow a little on their own instead of
+  // vanishing the moment they step outside the fire's reach.
+  const bodyMat = new THREE.MeshLambertMaterial({
+    color:0x63c4c0, emissive:0x1d4a48
+  });
+  const headMat = new THREE.MeshLambertMaterial({
+    color:0x8fe3dd, emissive:0x2a5f5c
+  });
+
+  const body = new THREE.Mesh(new THREE.BoxGeometry(.62,1.15,.45), bodyMat);
+  body.position.y=.58; g.add(body);
+  const h = new THREE.Mesh(new THREE.BoxGeometry(.5,.5,.5), headMat);
+  h.position.y=1.42; g.add(h);
+
+  const eyeMat = new THREE.MeshBasicMaterial({ color:0xff2d2d });
+  const e1 = new THREE.Mesh(new THREE.BoxGeometry(.12,.1,.06), eyeMat);
+  const e2 = new THREE.Mesh(new THREE.BoxGeometry(.12,.1,.06), eyeMat);
   e1.position.set(-.12,1.45,.26); e2.position.set(.12,1.45,.26);
   g.add(e1,e2);
+
   g.position.set(x,0,z);
   scene.add(g);
   enemies.push({ mesh:g, x, z, bob:Math.random()*6, fleeing:false });
@@ -702,37 +919,52 @@ function despawnWizard(){
 }
 
 
-// ---- the powers he can offer ----
-// Each one is a name, a description, and what it does.
+// ---- what the wanderer sells ----
+// cost is in coins. "once" means it can only be bought once
+// per visit, so you can't stack five Second Winds in a row.
 const POWERS = [
-  { name:"Steady Flame",
+  { name:"Armful", cost:3,
+    desc:"5 logs, right now",
+    apply(){ woodHeld += 5; buffNote("+5 wood"); } },
+
+  { name:"Warding", cost:5,
+    desc:"they keep their distance for 15 seconds",
+    apply(){ wardTimer = 15000; buffNote("warded"); } },
+
+  { name:"Steady Flame", cost:7, once:true,
     desc:"the fire burns half as fast for the rest of this night",
     apply(){ burnMultiplier = 0.5; buffNote("steady flame"); } },
 
-  { name:"Second Wind",
+  { name:"Sharp Mind", cost:8, once:true,
+    desc:"your next 3 right answers count double",
+    apply(){ doubleAnswers = 3; buffNote("sharp mind x3"); } },
+
+  { name:"Long Dawn", cost:9, once:true,
+    desc:"the next morning lasts twice as long",
+    apply(){ longDawn = true; buffNote("long dawn"); } },
+
+  { name:"Second Wind", cost:11,
     desc:"heal a heart, or gain one if you're already full",
     apply(){
       if (player.health < maxHealth) player.health++;
       else { maxHealth++; player.health++; }
       buffNote("+1 heart");
-    } },
-
-  { name:"Sharp Mind",
-    desc:"your next 3 right answers count double",
-    apply(){ doubleAnswers = 3; buffNote("sharp mind x3"); } },
-
-  { name:"Armful",
-    desc:"5 logs, right now",
-    apply(){ woodHeld += 5; buffNote("+5 wood"); } },
-
-  { name:"Warding",
-    desc:"they keep their distance for 15 seconds",
-    apply(){ wardTimer = 15000; buffNote("warded"); } },
-
-  { name:"Long Dawn",
-    desc:"the next morning lasts twice as long",
-    apply(){ longDawn = true; buffNote("long dawn"); } }
+    } }
 ];
+
+// sword upgrades are permanent, so they cost real money
+const SWORD_COSTS = [18, 40, 75];
+
+function swordOffer(){
+  if (swordTier >= SWORDS.length - 1) return null;
+  const next = SWORDS[swordTier + 1];
+  return {
+    name: next.name,
+    cost: SWORD_COSTS[swordTier],
+    desc: "a better blade — longer reach, faster swing. yours for good",
+    apply(){ swordTier++; applySwordLook(); buffNote(next.name.toLowerCase()); }
+  };
+}
 
 let burnMultiplier = 1;
 let doubleAnswers = 0;
@@ -747,34 +979,98 @@ function buffNote(text){
   document.getElementById("buffline").innerHTML = activeBuffs.join("<br>");
 }
 
+// ---- the "?" button: reads straight off the POWERS list,
+//      so adding a new power adds it here automatically ----
+let infoOpen = false;
+
+function buildInfoList(){
+  const s = swordOffer();
+  let html =
+    '<div class="prow"><div class="pname">Your blade: ' + SWORDS[swordTier].name + '</div>' +
+    '<div class="pdesc">reach ' + SWORDS[swordTier].reach.toFixed(2) +
+    ' &middot; a swing every ' + (SWORDS[swordTier].gap/1000).toFixed(2) + 's' +
+    (s ? ' &middot; next upgrade costs ' + s.cost : ' &middot; fully upgraded') +
+    '</div></div>';
+
+  html += POWERS.map(p =>
+    '<div class="prow"><div class="pname">' + p.name +
+    '<span class="icost">' + p.cost + ' ◉</span></div>' +
+    '<div class="pdesc">' + p.desc + '</div></div>'
+  ).join("");
+
+  document.getElementById("infolist").innerHTML = html;
+  document.getElementById("infocoins").textContent =
+    "you have " + coins + " coin" + (coins===1?"":"s");
+}
+
+document.getElementById("infobtn").onclick = () => {
+  buildInfoList();
+  infoOpen = true;
+  studying = true;            // freezes the world while you read
+  stickReset();
+  document.getElementById("infopanel").style.display = "block";
+};
+document.getElementById("infoclose").onclick = () => {
+  document.getElementById("infopanel").style.display = "none";
+  infoOpen = false;
+  studying = false;
+};
+
+// what's already been bought this visit
+let boughtThisVisit = [];
+
 function openWizard(){
   studying = true;             // reuse the pause flag
   stickReset();
+  boughtThisVisit = [];
+  renderShop();
+  document.getElementById("wizpick").style.display = "flex";
+}
 
-  // pick two different powers
-  const pool = POWERS.slice();
-  const a = pool.splice(Math.floor(Math.random()*pool.length), 1)[0];
-  const b = pool.splice(Math.floor(Math.random()*pool.length), 1)[0];
-
+function renderShop(){
   const holder = document.getElementById("wizopts");
   holder.innerHTML = "";
-  [a, b].forEach(p => {
+
+  document.getElementById("wizline").innerHTML =
+    '"spend it or carry it. the night doesn\'t care."' +
+    '<div id="purse">you have <b>' + coins + '</b> coin' + (coins===1?"":"s") + '</div>';
+
+  const stock = POWERS.slice();
+  const s = swordOffer();
+  if (s) stock.unshift(s);      // the blade sits at the top
+
+  stock.forEach(p => {
+    const sold = boughtThisVisit.includes(p.name);
+    const canAfford = coins >= p.cost;
+
     const btn = document.createElement("button");
-    btn.className = "power";
-    btn.innerHTML = p.name + "<small>" + p.desc + "</small>";
+    btn.className = "power" + ((sold || !canAfford) ? " locked" : "");
+    btn.innerHTML =
+      '<span class="pcost">' + p.cost + '</span>' +
+      p.name + "<small>" + (sold ? "already bought tonight" : p.desc) + "</small>";
+
     btn.onclick = () => {
+      if (sold || !canAfford) return;
+      coins -= p.cost;
       p.apply();
+      if (p.once) boughtThisVisit.push(p.name);
       updateHUD();
-      document.getElementById("wizpick").style.display = "none";
-      studying = false;
-      despawnWizard();
-      wizDoneTonight = true;
-      rollNextWizardNight();
+      renderShop();             // redraw with the new balance
     };
     holder.appendChild(btn);
   });
 
-  document.getElementById("wizpick").style.display = "flex";
+  const leave = document.createElement("button");
+  leave.id = "leaveshop";
+  leave.textContent = coins > 0 ? "keep the rest — back to the night" : "back to the night";
+  leave.onclick = () => {
+    document.getElementById("wizpick").style.display = "none";
+    studying = false;
+    despawnWizard();
+    wizDoneTonight = true;
+    rollNextWizardNight();
+  };
+  holder.appendChild(leave);
 }
 
 function updateWizard(dt, t){
@@ -836,6 +1132,8 @@ function resetGame(){
   phase = "night"; skyBlend = 0; dawnTimer = 0;
   qAsked = 0; qRight = 0; missed = [];
   burnMultiplier = 1; doubleAnswers = 0; wardTimer = 0; longDawn = false;
+  swordTier = 0; applySwordLook(); swingTimer = 0; swingCooldown = 0; swingLive = 0;
+  kills = 0; coins = 0;
   activeBuffs = []; document.getElementById("buffline").innerHTML = "";
   despawnWizard();
   // first visit lands on night 3, 4, or 5
@@ -863,6 +1161,7 @@ function updateHUD(){
 
   document.getElementById("firefill").style.width = Math.max(0,(fuel/FIRE_MAX)*100) + "%";
   document.getElementById("woodline").textContent = "wood: " + woodHeld;
+  document.getElementById("coinline").textContent = coins + " coin" + (coins===1?"":"s");
 
   document.getElementById("clock").innerHTML =
     '<span class="day">Day ' + nightNumber + '</span>' +
@@ -979,6 +1278,11 @@ renderer.domElement.addEventListener("touchmove", e => {
 renderer.domElement.addEventListener("touchend", () => { dragId=null; });
 
 document.getElementById("study").onclick = openQuiz;
+
+// pointerdown, not click — click waits for you to lift your
+// finger, which feels sluggish for an attack button
+const strikeBtn = document.getElementById("strikebtn");
+strikeBtn.addEventListener("pointerdown", e => { e.preventDefault(); strike(); });
 
 
 // =====================================================
@@ -1123,9 +1427,10 @@ function startNight(){
   dawnGoal = dawnGoalFor(nightNumber);
   dawnProgress = 0;
   clearEnemies();
-  // Steady Flame only lasts the night you got it
+  // Steady Flame and the blade only last the night you got them
   burnMultiplier = 1;
   wardTimer = 0;
+  swingTimer = 0; swingCooldown = 0; swingLive = 0;
   activeBuffs = [];
   document.getElementById("buffline").innerHTML = "";
   scheduleWizard();
@@ -1217,6 +1522,9 @@ function feedOneLog(){
 }
 
 function updateFire(dt, t){
+  // reading the powers list is a real pause — the fire waits for you
+  if (infoOpen) return;
+
   let rate = FIRE_BURN * burnMultiplier;
   if (phase === "dawn") rate *= FIRE_BURN_DAWN;
   if (studying) rate *= FIRE_BURN_STUDYING;
@@ -1250,6 +1558,33 @@ function updateEnemies(dt, t){
   const safeR = fireRadius();
 
   if (wardTimer > 0) wardTimer -= dt;
+  if (swingCooldown > 0){
+    swingCooldown -= dt;
+    if (swingCooldown <= 0) strikeBtn.classList.remove("cooling");
+  }
+
+  // light the button when something is actually in reach, so
+  // you're not guessing at distance in the dark
+  if (swingLive > 0) swingLive -= dt;
+
+  let inRange = false;
+  const myReach = SWORDS[swordTier].reach;
+  for (const e of enemies){
+    if (e.fleeing) continue;
+    if (Math.hypot(player.x - e.x, player.z - e.z) < myReach){ inRange = true; break; }
+  }
+  strikeBtn.classList.toggle("ready", inRange && swingCooldown <= 0);
+
+  // the swing itself — a quick arc, then back to rest
+  if (swingTimer > 0){
+    swingTimer -= dt;
+    const p = 1 - Math.max(0, swingTimer) / SWING_TIME;   // 0 to 1 through the swing
+    sword.rotation.x = REST_X - Math.sin(p * Math.PI) * 2.4;
+    sword.rotation.z = REST_Z + Math.sin(p * Math.PI) * .6;
+  } else {
+    sword.rotation.x = REST_X;
+    sword.rotation.z = REST_Z;
+  }
 
   for (let i = enemies.length-1; i >= 0; i--){
     const e = enemies[i];
@@ -1283,6 +1618,16 @@ function updateEnemies(dt, t){
 
     e.mesh.position.set(e.x, Math.abs(Math.sin(t*.006 + e.bob))*.12, e.z);
     e.mesh.rotation.y = Math.atan2(dirX, dirZ);
+
+    // walked into a swing that's still going
+    if (swingLive > 0 && !e.fleeing && distPlayer < myReach){
+      scene.remove(e.mesh);
+      enemies.splice(i,1);
+      kills++;
+      coins += 1 + Math.floor((nightNumber-1)/2);
+      updateHUD();
+      continue;
+    }
 
     if (!e.fleeing && distPlayer < 1.25 && player.hurtTimer <= 0){
       player.health--;
@@ -1339,6 +1684,7 @@ function updateCamera(){
 function setGameUI(on){
   document.getElementById("hud").style.display = on ? "block" : "none";
   document.getElementById("stickzone").style.display = on ? "block" : "none";
+  document.getElementById("strikebtn").style.display = on ? "flex" : "none";
   document.getElementById("study").style.display = on ? "flex" : "none";
   document.getElementById("feedbtn").style.display = on ? "flex" : "none";
   if (!on) document.getElementById("wizpick").style.display = "none";
@@ -1346,6 +1692,7 @@ function setGameUI(on){
 
 function showMenu(){
   playing = false; studying = false;
+  infoOpen = false; document.getElementById("infopanel").style.display = "none";
   document.getElementById("menu").style.display = "block";
   document.getElementById("quiz").style.display = "none";
   document.getElementById("over").style.display = "none";
@@ -1367,6 +1714,7 @@ function startGame(){
 
 function gameOver(){
   playing = false; studying = false;
+  infoOpen = false; document.getElementById("infopanel").style.display = "none";
   document.getElementById("quiz").style.display = "none";
   if (nightNumber > bestNight){ bestNight = nightNumber; decks[activeDeck].best = bestNight; saveDecks(); }
 
@@ -1374,7 +1722,8 @@ function gameOver(){
   document.getElementById("overtime").textContent = "survived " + formatTime(elapsed);
   document.getElementById("overq").textContent =
     qAsked === 0 ? "you never studied" : qRight + " of " + qAsked + " questions right";
-  document.getElementById("overbest").textContent = "furthest: night " + bestNight;
+  document.getElementById("overbest").textContent =
+    "furthest: night " + bestNight + (kills > 0 ? "  ·  " + kills + " cut down" : "");
 
   const rev = document.getElementById("review");
   if (missed.length === 0){
@@ -1395,14 +1744,15 @@ function buildMenu(){
   const menu = document.getElementById("menu");
   menu.innerHTML =
     '<h1>NIGHTFALL</h1><div class="sub">answer your way to morning</div>' +
-    '<div class="ver">v1.2 &middot; multiple question sets</div>' +
+    '<div class="ver">v1.7 &middot; safe ring &amp; clearer monsters</div>' +
 
     '<div class="panel"><h3>How it works</h3><ul>' +
     '<li>Every right answer is a choice: <b>feed the fire</b> or <b>count toward dawn</b>.</li>' +
     '<li>Night 1 needs 5 right answers. Every night after needs one more.</li>' +
     '<li>The fire pushes them back and burns down constantly. Tap FEED to add one log at a time.</li>' +
     '<li>At dawn they flee. Use the daylight to stock up on wood.</li>' +
-    '<li>A wanderer turns up every few nights. Find him before he leaves.</li>' +
+    '<li>You carry a blade. Tap <b>STRIKE</b> to swing — it catches everything in reach. Kills earn <b>coins</b>.</li>' +
+    '<li>A wanderer turns up every few nights and sells powers and better swords. Find him before he leaves.</li>' +
     '<li>Questions you miss come back around, and you review them at the end.</li>' +
     '</ul></div>' +
 
@@ -1546,6 +1896,7 @@ function animate(t){
 
   if (playing){
     updateSky(dt);
+    updateSafeRing(t);
 
     if (studying){
       updateFire(dt, t);
