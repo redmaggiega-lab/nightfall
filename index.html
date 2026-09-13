@@ -30,7 +30,9 @@
   }
   #menu h1 { font-size:42px; text-align:center; letter-spacing:3px;
     text-shadow:0 0 26px rgba(255,140,60,.55); }
-  #menu .sub { text-align:center; opacity:.6; font-size:13px; margin-bottom:22px; }
+  #menu .sub { text-align:center; opacity:.6; font-size:13px; margin-bottom:6px; }
+  #menu .ver { text-align:center; opacity:.32; font-size:11px;
+               letter-spacing:1px; margin-bottom:22px; }
 
   .panel {
     background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.12);
@@ -47,6 +49,39 @@
     -webkit-user-select:text; user-select:text; touch-action:auto;
   }
   .btnrow { display:flex; gap:8px; margin-top:9px; flex-wrap:wrap; }
+
+  .deck {
+    display:flex; align-items:center; gap:10px;
+    padding:11px 12px; border-radius:11px; margin-bottom:8px;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.1);
+  }
+  .deck.on {
+    background:rgba(255,157,77,.16);
+    border-color:rgba(255,157,77,.6);
+    box-shadow:0 0 14px rgba(255,140,60,.18);
+  }
+  .deck .dinfo { flex:1; min-width:0; }
+  .deck .dname { font-size:14px; font-weight:bold;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .deck.on .dname::before { content:"● "; color:#ff9d4d; font-size:11px; }
+  .deck .dmeta { font-size:11.5px; opacity:.55; margin-top:2px; }
+  .deck .dacts { display:flex; gap:6px; flex-shrink:0; }
+  .dbtn {
+    padding:6px 11px; border-radius:16px; font-size:11.5px;
+    background:rgba(255,255,255,.12); color:#fff; border:none;
+  }
+
+  #deckname {
+    width:100%; padding:10px; border-radius:9px; margin-bottom:9px;
+    background:rgba(0,0,0,.45); color:#fff; font-size:14px;
+    border:1px solid rgba(255,255,255,.18);
+    -webkit-user-select:text; user-select:text;
+  }
+  #editor:not(:empty) {
+    margin-top:14px; padding-top:14px;
+    border-top:1px solid rgba(255,255,255,.12);
+  }
   .btn { padding:10px 18px; border-radius:22px; font-size:13px; font-weight:bold;
     background:#ff9d4d; color:#2b1a0c; border:none; }
   .btn.ghost { background:rgba(255,255,255,.14); color:#fff; }
@@ -341,7 +376,57 @@ function requeueSoon(q){
   const pos = Math.max(0, queue.length - 3);
   queue.splice(pos, 0, q);
 }
-loadQuestions(SAMPLE_TEXT);
+// =====================================================
+//  QUESTION SETS — saved decks, one per subject
+//
+//  localStorage only holds text, so a whole list of decks
+//  has to be turned into a string with JSON.stringify on
+//  the way in and JSON.parse on the way out.
+// =====================================================
+const SAVE_DECKS = "nightfall.decks";
+const SAVE_ACTIVE = "nightfall.active";
+
+function save(key, value){
+  try { localStorage.setItem(key, value); } catch(e) {}
+}
+function load(key){
+  try { return localStorage.getItem(key); } catch(e) { return null; }
+}
+
+let decks = [];
+let activeDeck = 0;
+
+function saveDecks(){
+  save(SAVE_DECKS, JSON.stringify(decks));
+  save(SAVE_ACTIVE, activeDeck);
+}
+
+function initDecks(){
+  try {
+    const raw = load(SAVE_DECKS);
+    if (raw) decks = JSON.parse(raw);
+  } catch(e) { decks = []; }
+  if (!Array.isArray(decks)) decks = [];
+
+  // anything saved under the old single-set system moves over
+  const old = load("nightfall.questions");
+  if (!decks.length && old && parseQuestions(old).length){
+    decks.push({ name: "My questions", text: old, best: 1 });
+    saveDecks();
+  }
+
+  if (!decks.length){
+    decks.push({ name: "Sample set", text: SAMPLE_TEXT, best: 1 });
+  }
+
+  activeDeck = Number(load(SAVE_ACTIVE)) || 0;
+  if (activeDeck < 0 || activeDeck >= decks.length) activeDeck = 0;
+  if (!loadQuestions(decks[activeDeck].text)) loadQuestions(SAMPLE_TEXT);
+}
+initDecks();
+
+// which set the editor is open on: null = closed, -1 = brand new
+let editing = null;
 
 
 // =====================================================
@@ -376,7 +461,8 @@ const WIZ_EARLIEST = 12000;         // soonest into a night he'll appear
 const WIZ_LATEST = 40000;
 const WIZ_STAY = 30000;             // how long he waits before leaving
 
-let bestNight = 1;
+// each set keeps its own record
+let bestNight = (decks[activeDeck] && decks[activeDeck].best) || 1;
 
 
 // =====================================================
@@ -898,7 +984,7 @@ document.getElementById("study").onclick = openQuiz;
 // =====================================================
 //  QUIZ + THE CHOICE
 // =====================================================
-let currentQ = null, answered = false;
+let currentQ = null, answered = false, displayOrder = [];
 
 function openQuiz(){
   if (!playing || studying || !questions.length) return;
@@ -915,13 +1001,25 @@ function openQuiz(){
   document.getElementById("choice").style.display = "none";
   document.getElementById("qcont").style.display = "none";
 
+  // ---------------------------------------------------
+  // Shuffle where the options appear on screen.
+  // displayOrder holds the ORIGINAL positions in a new
+  // random order, so we can still tell which one was
+  // marked correct in the question file.
+  // ---------------------------------------------------
+  displayOrder = currentQ.options.map((_, i) => i);
+  for (let i = displayOrder.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [displayOrder[i], displayOrder[j]] = [displayOrder[j], displayOrder[i]];
+  }
+
   const holder = document.getElementById("qopts");
   holder.innerHTML = "";
-  currentQ.options.forEach((opt,i) => {
+  displayOrder.forEach(originalIndex => {
     const b = document.createElement("button");
     b.className = "opt";
-    b.textContent = opt;
-    b.onclick = () => answerQ(i,b);
+    b.textContent = currentQ.options[originalIndex];
+    b.onclick = () => answerQ(originalIndex, b);
     holder.appendChild(b);
   });
 
@@ -934,7 +1032,10 @@ function answerQ(index, btn){
   qAsked++;
 
   const opts = document.querySelectorAll("#qopts .opt");
-  opts[currentQ.correct].classList.add("right");
+  // the right answer is now somewhere else on screen,
+  // so look up where it ended up before highlighting it
+  const correctSlot = displayOrder.indexOf(currentQ.correct);
+  if (opts[correctSlot]) opts[correctSlot].classList.add("right");
 
   if (index === currentQ.correct){
     qRight++;
@@ -1028,7 +1129,7 @@ function startNight(){
   activeBuffs = [];
   document.getElementById("buffline").innerHTML = "";
   scheduleWizard();
-  if (nightNumber > bestNight) bestNight = nightNumber;
+  if (nightNumber > bestNight){ bestNight = nightNumber; decks[activeDeck].best = bestNight; saveDecks(); }
   banner("NIGHT " + nightNumber, "#ff8a7a");
   updateHUD();
 }
@@ -1267,7 +1368,7 @@ function startGame(){
 function gameOver(){
   playing = false; studying = false;
   document.getElementById("quiz").style.display = "none";
-  if (nightNumber > bestNight) bestNight = nightNumber;
+  if (nightNumber > bestNight){ bestNight = nightNumber; decks[activeDeck].best = bestNight; saveDecks(); }
 
   document.getElementById("overnights").textContent = "Night " + nightNumber;
   document.getElementById("overtime").textContent = "survived " + formatTime(elapsed);
@@ -1294,6 +1395,7 @@ function buildMenu(){
   const menu = document.getElementById("menu");
   menu.innerHTML =
     '<h1>NIGHTFALL</h1><div class="sub">answer your way to morning</div>' +
+    '<div class="ver">v1.2 &middot; multiple question sets</div>' +
 
     '<div class="panel"><h3>How it works</h3><ul>' +
     '<li>Every right answer is a choice: <b>feed the fire</b> or <b>count toward dawn</b>.</li>' +
@@ -1304,33 +1406,128 @@ function buildMenu(){
     '<li>Questions you miss come back around, and you review them at the end.</li>' +
     '</ul></div>' +
 
-    '<div class="panel"><h3>Your questions</h3>' +
-    '<p>Paste your study material. One question per block, blank line between, ' +
-    'a * in front of the correct answer.</p>' +
-    '<textarea id="qinput" placeholder="What is 2 + 2?&#10;*4&#10;3&#10;5"></textarea>' +
-    '<div class="btnrow">' +
-    '<button class="btn" id="loadbtn">load questions</button>' +
-    '<button class="btn ghost" id="samplebtn">show sample format</button>' +
-    '</div><div id="loadmsg">using ' + questions.length + ' sample questions</div></div>' +
+    '<div class="panel"><h3>Your question sets</h3>' +
+    '<div id="decklist"></div>' +
+    '<div class="btnrow"><button class="btn ghost" id="newdeck">+ new set</button></div>' +
+    '<div id="editor"></div>' +
+    '</div>' +
 
     '<button id="play">begin the first night</button>' +
     (bestNight > 1 ? '<div id="recordline">furthest: night ' + bestNight + '</div>' : '');
 
   document.getElementById("play").onclick = startGame;
-  document.getElementById("loadbtn").onclick = () => {
-    const n = loadQuestions(document.getElementById("qinput").value);
+  document.getElementById("newdeck").onclick = () => { editing = -1; renderEditor(); };
+  renderDecks();
+  renderEditor();
+}
+
+// ---- the list of sets ----
+function renderDecks(){
+  const list = document.getElementById("decklist");
+  if (!list) return;
+  let html = "";
+  for (let i = 0; i < decks.length; i++){
+    const d = decks[i];
+    const count = parseQuestions(d.text).length;
+    html +=
+      '<div class="deck' + (i === activeDeck ? ' on' : '') + '" data-pick="' + i + '">' +
+        '<div class="dinfo">' +
+          '<div class="dname">' + escapeHtml(d.name) + '</div>' +
+          '<div class="dmeta">' + count + ' question' + (count===1?"":"s") +
+            (d.best > 1 ? ' &middot; furthest night ' + d.best : '') + '</div>' +
+        '</div>' +
+        '<div class="dacts">' +
+          '<button class="dbtn" data-edit="' + i + '">edit</button>' +
+          (decks.length > 1 ? '<button class="dbtn" data-del="' + i + '">delete</button>' : '') +
+        '</div>' +
+      '</div>';
+  }
+  list.innerHTML = html;
+
+  list.querySelectorAll("[data-pick]").forEach(el => {
+    el.onclick = e => {
+      // ignore taps that landed on the edit/delete buttons
+      if (e.target.closest(".dbtn")) return;
+      pickDeck(Number(el.dataset.pick));
+    };
+  });
+  list.querySelectorAll("[data-edit]").forEach(b => {
+    b.onclick = () => { editing = Number(b.dataset.edit); renderEditor(); };
+  });
+  list.querySelectorAll("[data-del]").forEach(b => {
+    b.onclick = () => {
+      const i = Number(b.dataset.del);
+      decks.splice(i, 1);
+      if (activeDeck >= decks.length) activeDeck = decks.length - 1;
+      else if (activeDeck > i) activeDeck--;
+      editing = null;
+      pickDeck(activeDeck);
+    };
+  });
+}
+
+function pickDeck(i){
+  activeDeck = i;
+  if (!loadQuestions(decks[i].text)) loadQuestions(SAMPLE_TEXT);
+  bestNight = decks[i].best || 1;
+  saveDecks();
+  buildMenu();
+}
+
+// ---- the paste-and-name editor ----
+function renderEditor(){
+  const box = document.getElementById("editor");
+  if (!box) return;
+  if (editing === null){ box.innerHTML = ""; return; }
+
+  const isNew = editing === -1;
+  const d = isNew ? { name: "", text: "" } : decks[editing];
+
+  box.innerHTML =
+    '<p>One question per block, a blank line between them, ' +
+    'and a * in front of the right answer.</p>' +
+    '<input id="deckname" placeholder="name it — Biology, Unit 4..." value="' +
+      escapeHtml(d.name) + '">' +
+    '<textarea id="qinput" placeholder="What is 2 + 2?&#10;*4&#10;3&#10;5">' +
+      escapeHtml(d.text) + '</textarea>' +
+    '<div class="btnrow">' +
+      '<button class="btn" id="savedeck">' + (isNew ? "create set" : "save changes") + '</button>' +
+      '<button class="btn ghost" id="canceledit">cancel</button>' +
+      '<button class="btn ghost" id="sampledeck">sample format</button>' +
+    '</div><div id="loadmsg"></div>';
+
+  document.getElementById("canceledit").onclick = () => { editing = null; renderEditor(); };
+  document.getElementById("sampledeck").onclick = () => {
+    document.getElementById("qinput").value = SAMPLE_TEXT;
+  };
+  document.getElementById("savedeck").onclick = () => {
+    const text = document.getElementById("qinput").value;
+    const name = document.getElementById("deckname").value.trim();
     const msg = document.getElementById("loadmsg");
+    const n = parseQuestions(text).length;
+
     if (n === 0){
       msg.style.color = "#ff9a8a";
       msg.textContent = "couldn't read that — each question needs a * on one answer";
-    } else {
-      msg.style.color = "#8ee7b7";
-      msg.textContent = "loaded " + n + " question" + (n===1?"":"s");
+      return;
     }
+    if (isNew){
+      decks.push({ name: name || "Set " + (decks.length + 1), text: text, best: 1 });
+      activeDeck = decks.length - 1;
+    } else {
+      decks[editing].name = name || decks[editing].name || "Set " + (editing + 1);
+      decks[editing].text = text;
+      activeDeck = editing;
+    }
+    editing = null;
+    pickDeck(activeDeck);
   };
-  document.getElementById("samplebtn").onclick = () => {
-    document.getElementById("qinput").value = SAMPLE_TEXT;
-  };
+}
+
+// turns < > & " into safe text so a question can't break the page
+function escapeHtml(s){
+  return String(s).replace(/[&<>"]/g, c =>
+    ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 }
 
 document.getElementById("again").onclick = startGame;
