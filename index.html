@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Nightfall</title>
+
+<!-- ===== makes this installable as an app ===== -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d0a18">
+
+<!-- iOS ignores the manifest and wants its own tags -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nightfall">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    height:100%; overflow:hidden; background:#07060d;
+    font-family:"Trebuchet MS", sans-serif;
+    -webkit-user-select:none; user-select:none; touch-action:none; color:#fff;
+  }
+  canvas { display:block; }
+
+  #menu {
+    position:fixed; inset:0; overflow-y:auto; padding:26px 18px 60px;
+    background:linear-gradient(#0d0a18, #1c1226 55%, #2d1420);
+    touch-action:pan-y;
+  }
+  #menu h1 { font-size:42px; text-align:center; letter-spacing:3px;
+    text-shadow:0 0 26px rgba(255,140,60,.55); }
+  #menu .sub { text-align:center; opacity:.6; font-size:13px; margin-bottom:22px; }
+
+  .panel {
+    background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.12);
+    border-radius:14px; padding:14px; margin-bottom:18px;
+  }
+  .panel h3 { font-size:15px; margin-bottom:6px; }
+  .panel p { font-size:12px; opacity:.62; line-height:1.55; margin-bottom:9px; }
+  .panel ul { font-size:12.5px; opacity:.75; line-height:1.75; padding-left:18px; }
+  textarea {
+    width:100%; height:120px; padding:10px; border-radius:9px;
+    background:rgba(0,0,0,.45); color:#fff; font-size:13px;
+    border:1px solid rgba(255,255,255,.18);
+    font-family:"Courier New", monospace; resize:vertical;
+    -webkit-user-select:text; user-select:text; touch-action:auto;
+  }
+  .btnrow { display:flex; gap:8px; margin-top:9px; flex-wrap:wrap; }
+  .btn { padding:10px 18px; border-radius:22px; font-size:13px; font-weight:bold;
+    background:#ff9d4d; color:#2b1a0c; border:none; }
+  .btn.ghost { background:rgba(255,255,255,.14); color:#fff; }
+  #loadmsg { font-size:12px; margin-top:9px; min-height:16px; }
+  #play { display:block; width:100%; padding:17px; font-size:19px; font-weight:bold;
+    border:none; border-radius:30px; background:#ff9d4d; color:#2b1a0c; margin-top:6px; }
+  #recordline { text-align:center; font-size:13px; opacity:.7; margin-top:12px; }
+
+  /* ---------- HUD ---------- */
+  #hud { position:fixed; inset:0; display:none; pointer-events:none; }
+  #clock { position:absolute; top:14px; right:16px; font-size:16px;
+    font-variant-numeric:tabular-nums; text-shadow:0 2px 10px #000; }
+  #clock .day { font-weight:bold; }
+  #clock .sep { opacity:.4; margin:0 7px; }
+  #clock .time { opacity:.75; }
+  #phase { position:absolute; top:34px; right:16px; font-size:19px; font-weight:bold;
+    text-shadow:0 2px 10px #000; }
+  #hearts { position:absolute; top:14px; left:16px; font-size:21px; }
+
+  #firebar { position:absolute; top:50px; left:16px; width:136px; height:11px;
+    border-radius:6px; background:rgba(255,255,255,.14); overflow:hidden; }
+  #firefill { height:100%; width:100%; background:linear-gradient(90deg,#ff5c2b,#ffd166); }
+  #firelabel { position:absolute; top:64px; left:16px; font-size:11px; opacity:.65; }
+
+  #dawnbar { position:absolute; top:86px; left:16px; width:136px; height:11px;
+    border-radius:6px; background:rgba(255,255,255,.14); overflow:hidden; }
+  #dawnfill { height:100%; width:0%; background:linear-gradient(90deg,#7cc6ff,#ffe9a8); }
+  #dawnlabel { position:absolute; top:100px; left:16px; font-size:11px; opacity:.65; }
+
+  #woodline { position:absolute; top:122px; left:16px; font-size:14px; font-weight:bold; }
+  #warn { position:absolute; top:40%; left:0; right:0; text-align:center;
+    font-size:25px; font-weight:bold; color:#ffb08a; opacity:0;
+    text-shadow:0 0 20px rgba(0,0,0,.9); transition:opacity .25s; }
+  #banner { position:absolute; top:32%; left:0; right:0; text-align:center;
+    font-size:40px; font-weight:bold; opacity:0; letter-spacing:3px;
+    text-shadow:0 0 30px rgba(0,0,0,.9); transition:opacity .6s; }
+
+  #stickzone { position:fixed; left:0; bottom:0; width:46%; height:45%; display:none; }
+  #stick { position:absolute; left:30px; bottom:40px; width:140px; height:140px;
+    border-radius:50%; background:rgba(255,255,255,.09); border:2px solid rgba(255,255,255,.2); }
+  #knob { position:absolute; left:42px; top:42px; width:56px; height:56px;
+    border-radius:50%; background:rgba(255,255,255,.55); }
+
+  #study {
+    position:fixed; right:26px; bottom:48px; display:none;
+    width:110px; height:110px; border-radius:50%;
+    background:rgba(126,200,255,.2); border:2px solid rgba(126,200,255,.78);
+    flex-direction:column; align-items:center; justify-content:center;
+    font-size:13px; font-weight:bold; text-align:center; line-height:1.25;
+  }
+
+  /* only lights up when you're standing at the fire with wood */
+  #feedbtn {
+    position:fixed; right:26px; bottom:172px; display:none;
+    width:92px; height:92px; border-radius:50%;
+    background:rgba(255,140,60,.14); border:2px solid rgba(255,157,77,.35);
+    flex-direction:column; align-items:center; justify-content:center;
+    font-size:12px; font-weight:bold; text-align:center; line-height:1.25;
+    opacity:.45;
+  }
+  #feedbtn.ready { background:rgba(255,140,60,.3); border-color:rgba(255,180,90,.95); opacity:1; }
+  #feednum { font-size:19px; }
+
+  /* ---------- WIZARD ---------- */
+  #wizpick {
+    position:fixed; inset:0; display:none; z-index:22; flex-direction:column;
+    justify-content:center; padding:24px; background:rgba(16,6,28,.94);
+    overflow-y:auto; touch-action:pan-y;
+  }
+  #wizpick h2 { font-size:24px; margin-bottom:4px; color:#c9a4ff; }
+  #wizpick .line { font-size:13px; opacity:.7; margin-bottom:20px; font-style:italic; }
+  .power {
+    display:block; width:100%; padding:16px; margin-bottom:11px; border-radius:13px;
+    font-size:16px; font-weight:bold; color:#fff; text-align:left;
+    background:rgba(160,110,255,.16); border:2px solid rgba(178,140,255,.75);
+  }
+  .power small { display:block; font-weight:normal; font-size:12.5px; opacity:.78; margin-top:4px; }
+
+  #buffline {
+    position:absolute; top:146px; left:16px; font-size:12px; color:#c9a4ff; line-height:1.5;
+  }
+
+  /* ---------- QUIZ ---------- */
+  #quiz { position:fixed; inset:0; display:none; z-index:20; flex-direction:column;
+    justify-content:center; padding:22px; background:rgba(6,5,12,.94);
+    overflow-y:auto; touch-action:pan-y; }
+  #qwarn { font-size:12px; color:#ffb08a; margin-bottom:12px; }
+  #qtext { font-size:21px; line-height:1.4; margin-bottom:18px; }
+  .opt { display:block; width:100%; text-align:left; padding:14px 16px; margin-bottom:10px;
+    border-radius:12px; font-size:15px; color:#fff;
+    background:rgba(255,255,255,.09); border:2px solid rgba(255,255,255,.16); }
+  .opt.right { background:rgba(110,231,183,.28); border-color:#6ee7b7; }
+  .opt.wrong { background:rgba(255,110,100,.25); border-color:#ff7a6e; }
+  #qresult { font-size:15px; margin-top:8px; min-height:22px; }
+
+  #choice { display:none; margin-top:16px; }
+  #choice .ctitle { font-size:14px; opacity:.8; margin-bottom:10px; }
+  .cbtn { display:block; width:100%; padding:15px; margin-bottom:10px; border-radius:13px;
+    font-size:15px; font-weight:bold; color:#fff; text-align:left; }
+  #feed { background:rgba(255,140,60,.22); border:2px solid rgba(255,157,77,.85); }
+  #toward { background:rgba(124,198,255,.18); border:2px solid rgba(124,198,255,.8); }
+  .cbtn small { display:block; font-weight:normal; font-size:12px; opacity:.75; margin-top:3px; }
+
+  /* ---------- END ---------- */
+  #over { position:fixed; inset:0; display:none; z-index:15; flex-direction:column;
+    align-items:center; justify-content:flex-start; text-align:center; padding:32px 20px;
+    background:rgba(10,6,14,.94); overflow-y:auto; touch-action:pan-y; }
+  #over h2 { font-size:32px; margin-bottom:8px; color:#ff8a7a; }
+  #over .stat { font-size:15px; opacity:.85; margin:3px 0; }
+  #over .bigstat { font-size:40px; font-weight:bold; margin:12px 0 4px; }
+  #review { width:100%; max-width:520px; margin:22px 0; text-align:left; }
+  #review h3 { font-size:15px; margin-bottom:10px; opacity:.85; }
+  .miss { background:rgba(255,110,100,.1); border-left:3px solid #ff7a6e;
+    border-radius:7px; padding:11px 13px; margin-bottom:9px; }
+  .miss .mq { font-size:14px; margin-bottom:5px; }
+  .miss .ma { font-size:13px; color:#8ee7b7; }
+</style>
+</head>
+<body>
+
+<div id="menu"></div>
+
+<div id="hud">
+  <div id="hearts"></div>
+  <div id="firebar"><div id="firefill"></div></div>
+  <div id="firelabel">campfire</div>
+  <div id="dawnbar"><div id="dawnfill"></div></div>
+  <div id="dawnlabel">until dawn</div>
+  <div id="woodline">wood: 0</div>
+  <div id="buffline"></div>
+  <div id="clock">0:00</div>
+  <div id="phase">Night 1</div>
+  <div id="warn"></div>
+  <div id="banner"></div>
+</div>
+
+<div id="stickzone"><div id="stick"><div id="knob"></div></div></div>
+<div id="study">STUDY</div>
+<div id="feedbtn"><span id="feednum">0</span><span>FEED</span></div>
+
+<div id="wizpick">
+  <h2>the wanderer</h2>
+  <div class="line" id="wizline">"take one. the night is long."</div>
+  <div id="wizopts"></div>
+</div>
+
+<div id="quiz">
+  <div id="qwarn">the fire keeps burning while you think</div>
+  <div id="qtext"></div>
+  <div id="qopts"></div>
+  <div id="qresult"></div>
+
+  <div id="choice">
+    <div class="ctitle">spend it how?</div>
+    <button class="cbtn" id="feed">feed the fire
+      <small>+40 fuel — buys you time tonight</small></button>
+    <button class="cbtn" id="toward">count toward dawn
+      <small>+1 progress — gets the night over with</small></button>
+  </div>
+
+  <button class="btn" id="qcont" style="display:none">back to it</button>
+</div>
+
+<div id="over">
+  <h2 id="overtitle">the dark got you</h2>
+  <div class="bigstat" id="overnights">Night 1</div>
+  <div class="stat" id="overtime"></div>
+  <div class="stat" id="overq"></div>
+  <div class="stat" id="overbest"></div>
+  <div id="review"></div>
+  <div>
+    <button class="btn" id="again">try again</button>
+    <button class="btn ghost" id="tomenu">menu</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// #####################################################
+//  NIGHTFALL
+//  Answer questions to reach dawn. Every right answer
+//  is a choice: keep the fire alive, or push toward
+//  morning. One answer can't do both.
+// #####################################################
+
+
+// =====================================================
+//  QUESTION BANK
+// =====================================================
+const SAMPLE_TEXT =
+`What is the powerhouse of the cell?
+*Mitochondria
+Nucleus
+Ribosome
+Golgi body
+
+What is the greatest common factor of 12 and 18?
+*6
+3
+9
+12
+
+What is 3/4 + 1/8?
+*7/8
+4/12
+1/2
+5/8
+
+Which planet has the most moons?
+*Saturn
+Jupiter
+Neptune
+Mars
+
+What year did the Berlin Wall fall?
+*1989
+1975
+1991
+1968
+
+Factor completely: x² - 9
+*(x+3)(x-3)
+(x-3)(x-3)
+(x+9)(x-1)
+x(x-9)
+
+What gas do plants absorb for photosynthesis?
+*Carbon dioxide
+Oxygen
+Nitrogen
+Hydrogen
+
+Who was the first president of the United States?
+*George Washington
+Thomas Jefferson
+John Adams
+Benjamin Franklin
+
+Simplify: 4/6
+*2/3
+3/4
+1/2
+4/3
+
+What is the largest organ in the human body?
+*Skin
+Liver
+Lungs
+Heart`;
+
+let questions = [], queue = [], qAsked = 0, qRight = 0;
+let missed = [];
+
+function parseQuestions(text){
+  const blocks = text.trim().split(/\n\s*\n/);
+  const out = [];
+  for (const block of blocks){
+    const lines = block.split("\n").map(l => l.trim()).filter(l => l.length);
+    if (lines.length < 3) continue;
+    const q = lines[0], options = [];
+    let correct = -1;
+    for (let i = 1; i < lines.length; i++){
+      let line = lines[i];
+      if (line.startsWith("*")){ correct = options.length; line = line.slice(1).trim(); }
+      options.push(line);
+    }
+    if (correct === -1) continue;
+    out.push({ q, options, correct });
+  }
+  return out;
+}
+function loadQuestions(text){
+  const parsed = parseQuestions(text);
+  if (!parsed.length) return 0;
+  questions = parsed; queue = [];
+  return parsed.length;
+}
+function shuffleQueue(){
+  queue = questions.slice();
+  for (let i = queue.length-1; i > 0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [queue[i], queue[j]] = [queue[j], queue[i]];
+  }
+}
+function nextQuestion(){
+  if (!queue.length) shuffleQueue();
+  return queue.pop();
+}
+// SPACED REPETITION: missed questions come back soon
+// instead of vanishing until the deck reshuffles.
+function requeueSoon(q){
+  const pos = Math.max(0, queue.length - 3);
+  queue.splice(pos, 0, q);
+}
+loadQuestions(SAMPLE_TEXT);
+
+
+// =====================================================
+//  BALANCE — every knob in one place
+// =====================================================
+const ARENA = 42;
+
+const FIRE_MAX = 100;
+// fuel lost per millisecond. 0.0011 x 1000ms x 91s ≈ 100,
+// so a full fire lasts about a minute and a half.
+const FIRE_BURN = 0.0011;
+const FIRE_BURN_STUDYING = 1.8;
+const FIRE_BURN_DAWN = 0.12;
+const WOOD_VALUE = 25;
+const ANSWER_FUEL = 40;
+const FIRE_RADIUS_MAX = 13;
+
+const PLAYER_SPEED = 0.175;
+const MAX_HEALTH = 3;
+const HURT_COOLDOWN = 1200;
+
+const ENEMY_SPEED_BASE = 0.045;
+const ENEMY_SPEED_GROWTH = 0.008;
+
+const DAWN_DURATION = 38000;
+const dawnGoalFor = n => 4 + n;     // night 1 needs 5, night 2 needs 6...
+
+// the wanderer — shows up once, every 3 to 5 nights
+const WIZ_NIGHT_MIN = 3;
+const WIZ_NIGHT_MAX = 5;
+const WIZ_EARLIEST = 12000;         // soonest into a night he'll appear
+const WIZ_LATEST = 40000;
+const WIZ_STAY = 30000;             // how long he waits before leaving
+
+let bestNight = 1;
+
+
+// =====================================================
+//  THREE.JS SETUP
+// =====================================================
+const NIGHT_SKY = new THREE.Color(0x080711);
+const DAWN_SKY  = new THREE.Color(0x6b7fa8);
+
+const scene = new THREE.Scene();
+scene.background = NIGHT_SKY.clone();
+scene.fog = new THREE.Fog(NIGHT_SKY.clone(), 12, 46);
+
+const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, .1, 300);
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
+
+addEventListener("resize", () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+const ambient = new THREE.AmbientLight(0x2a3550, .5);
+scene.add(ambient);
+const sunLight = new THREE.DirectionalLight(0x9fb6e8, .22);
+sunLight.position.set(-20, 40, -10);
+scene.add(sunLight);
+
+const fireLight = new THREE.PointLight(0xff9040, 2.4, 30, 2);
+fireLight.position.set(0, 2.2, 0);
+scene.add(fireLight);
+
+
+// =====================================================
+//  WORLD
+// =====================================================
+function boxMesh(w,h,d,c){
+  return new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshLambertMaterial({color:c}));
+}
+
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(ARENA*2, ARENA*2),
+  new THREE.MeshLambertMaterial({ color:0x1d2a1c })
+);
+ground.rotation.x = -Math.PI/2;
+scene.add(ground);
+
+for (let i = 0; i < 46; i++){
+  const a = (i/46)*Math.PI*2 + Math.random()*.08;
+  const r = ARENA - 1 - Math.random()*4;
+  const trunk = boxMesh(.7, 4.5, .7, 0x30231a);
+  trunk.position.set(Math.cos(a)*r, 2.25, Math.sin(a)*r);
+  scene.add(trunk);
+  const top = boxMesh(3, 3.4, 3, 0x18301f);
+  top.position.set(Math.cos(a)*r, 5.4, Math.sin(a)*r);
+  scene.add(top);
+}
+
+const campfire = new THREE.Group();
+for (let i = 0; i < 9; i++){
+  const a = (i/9)*Math.PI*2;
+  const stone = boxMesh(.55,.38,.55,0x5a5f66);
+  stone.position.set(Math.cos(a)*1.5, .19, Math.sin(a)*1.5);
+  stone.rotation.y = a;
+  campfire.add(stone);
+}
+const logA = boxMesh(1.9,.3,.3,0x54331e); logA.position.y=.32; logA.rotation.y=.5;
+const logB = boxMesh(1.9,.3,.3,0x4a2d1a); logB.position.y=.32; logB.rotation.y=-.7;
+campfire.add(logA, logB);
+const flame = new THREE.Mesh(new THREE.ConeGeometry(.62,1.5,7),
+  new THREE.MeshBasicMaterial({ color:0xff8a30 }));
+flame.position.y = 1.15;
+campfire.add(flame);
+scene.add(campfire);
+
+
+// =====================================================
+//  PLAYER
+// =====================================================
+function limb(len,c,t){
+  const p = new THREE.Group();
+  const part = boxMesh(t,len,t,c);
+  part.position.y = -len/2;
+  p.add(part);
+  return p;
+}
+const person = new THREE.Group();
+const SKIN=0xe8bd97, SHIRT=0x8b5cf6, PANTS=0x2f3a52;
+const torso=boxMesh(.75,1,.42,SHIRT); torso.position.y=.5; person.add(torso);
+const head=boxMesh(.55,.55,.55,SKIN); head.position.y=1.32; person.add(head);
+const hair=boxMesh(.6,.18,.6,0x3d2519); hair.position.y=1.62; person.add(hair);
+const armL=limb(.8,SKIN,.22); armL.position.set(-.48,.95,0);
+const armR=limb(.8,SKIN,.22); armR.position.set(.48,.95,0);
+const legL=limb(.85,PANTS,.26); legL.position.set(-.19,.02,0);
+const legR=limb(.85,PANTS,.26); legR.position.set(.19,.02,0);
+person.add(armL,armR,legL,legR);
+scene.add(person);
+
+const player = { x:0, z:6, facing:0, walkCycle:0, health:MAX_HEALTH, hurtTimer:0 };
+
+
+// =====================================================
+//  WOOD & ENEMIES
+// =====================================================
+let woodItems = [], woodHeld = 0, enemies = [];
+
+function spawnWood(){
+  let x, z, d;
+  do {
+    x = (Math.random()*2-1)*(ARENA-6);
+    z = (Math.random()*2-1)*(ARENA-6);
+    d = Math.hypot(x,z);
+  } while (d < 7);
+
+  const mesh = boxMesh(1.1,.32,.32,0x7a5030);
+  mesh.position.set(x,.26,z);
+  mesh.rotation.y = Math.random()*Math.PI;
+  scene.add(mesh);
+  const glow = new THREE.PointLight(0xffcf8a,.5,4.5,2);
+  glow.position.set(x,.7,z);
+  scene.add(glow);
+  woodItems.push({ mesh, glow, x, z });
+}
+
+function spawnEnemy(){
+  const a = Math.random()*Math.PI*2, d = ARENA-4;
+  const x = Math.cos(a)*d, z = Math.sin(a)*d;
+  const g = new THREE.Group();
+  const body = boxMesh(.62,1.15,.45,0x241c2e); body.position.y=.58; g.add(body);
+  const h = boxMesh(.5,.5,.5,0x191322); h.position.y=1.42; g.add(h);
+  const eyeMat = new THREE.MeshBasicMaterial({ color:0xff4d4d });
+  const e1 = new THREE.Mesh(new THREE.BoxGeometry(.1,.08,.06), eyeMat);
+  const e2 = new THREE.Mesh(new THREE.BoxGeometry(.1,.08,.06), eyeMat);
+  e1.position.set(-.12,1.45,.26); e2.position.set(.12,1.45,.26);
+  g.add(e1,e2);
+  g.position.set(x,0,z);
+  scene.add(g);
+  enemies.push({ mesh:g, x, z, bob:Math.random()*6, fleeing:false });
+}
+
+function clearEnemies(){ for (const e of enemies) scene.remove(e.mesh); enemies = []; }
+function clearWood(){ for (const w of woodItems){ scene.remove(w.mesh); scene.remove(w.glow); } woodItems = []; }
+
+
+// =====================================================
+//  THE WANDERER
+//  Shows up now and then, waits a while, offers you a
+//  choice of two powers, then leaves.
+// =====================================================
+const wizard = new THREE.Group();
+{
+  const robe = new THREE.Mesh(
+    new THREE.ConeGeometry(.62, 1.7, 8),
+    new THREE.MeshLambertMaterial({ color:0x3a2a63 })
+  );
+  robe.position.y = .85;
+  wizard.add(robe);
+
+  const wHead = boxMesh(.42,.42,.42, 0xe8bd97);
+  wHead.position.y = 1.82;
+  wizard.add(wHead);
+
+  const brim = new THREE.Mesh(
+    new THREE.CylinderGeometry(.62,.62,.08,10),
+    new THREE.MeshLambertMaterial({ color:0x2b1f4a })
+  );
+  brim.position.y = 2.06;
+  wizard.add(brim);
+
+  const hat = new THREE.Mesh(
+    new THREE.ConeGeometry(.46, 1.1, 8),
+    new THREE.MeshLambertMaterial({ color:0x2b1f4a })
+  );
+  hat.position.y = 2.6;
+  wizard.add(hat);
+
+  const staff = boxMesh(.09, 2.3, .09, 0x4a3320);
+  staff.position.set(.55, 1.15, 0);
+  wizard.add(staff);
+
+  const orb = new THREE.Mesh(
+    new THREE.OctahedronGeometry(.2),
+    new THREE.MeshBasicMaterial({ color:0xc9a4ff })
+  );
+  orb.position.set(.55, 2.4, 0);
+  wizard.add(orb);
+  wizard.userData.orb = orb;
+}
+const wizLight = new THREE.PointLight(0xa46bff, 0, 13, 2);
+scene.add(wizLight);
+scene.add(wizard);
+wizard.visible = false;
+
+let wizActive = false, wizTimer = 0;
+let wizX = 0, wizZ = 0;
+let wizNextNight = 3;        // which night he'll next turn up on
+let wizPending = false;      // he's due tonight and hasn't shown yet
+let wizAppearIn = 0;         // countdown until he walks out of the trees
+let wizDoneTonight = false;
+
+// Called at the start of every night. Decides whether he's
+// coming tonight, and if so, roughly when.
+function scheduleWizard(){
+  wizDoneTonight = false;
+  if (nightNumber >= wizNextNight){
+    wizPending = true;
+    wizAppearIn = WIZ_EARLIEST + Math.random()*(WIZ_LATEST - WIZ_EARLIEST);
+  } else {
+    wizPending = false;
+  }
+}
+
+function rollNextWizardNight(){
+  const gap = WIZ_NIGHT_MIN + Math.floor(Math.random()*(WIZ_NIGHT_MAX - WIZ_NIGHT_MIN + 1));
+  wizNextNight = nightNumber + gap;
+}
+
+function spawnWizard(){
+  const a = Math.random()*Math.PI*2;
+  const r = 11 + Math.random()*13;
+  wizX = Math.cos(a)*r;
+  wizZ = Math.sin(a)*r;
+  wizard.position.set(wizX, 0, wizZ);
+  wizard.visible = true;
+  wizActive = true;
+  wizPending = false;
+  wizTimer = WIZ_STAY;
+  banner("a stranger", "#c9a4ff");
+}
+
+function despawnWizard(){
+  wizActive = false;
+  wizard.visible = false;
+  wizLight.intensity = 0;
+}
+
+
+// ---- the powers he can offer ----
+// Each one is a name, a description, and what it does.
+const POWERS = [
+  { name:"Steady Flame",
+    desc:"the fire burns half as fast for the rest of this night",
+    apply(){ burnMultiplier = 0.5; buffNote("steady flame"); } },
+
+  { name:"Second Wind",
+    desc:"heal a heart, or gain one if you're already full",
+    apply(){
+      if (player.health < maxHealth) player.health++;
+      else { maxHealth++; player.health++; }
+      buffNote("+1 heart");
+    } },
+
+  { name:"Sharp Mind",
+    desc:"your next 3 right answers count double",
+    apply(){ doubleAnswers = 3; buffNote("sharp mind x3"); } },
+
+  { name:"Armful",
+    desc:"5 logs, right now",
+    apply(){ woodHeld += 5; buffNote("+5 wood"); } },
+
+  { name:"Warding",
+    desc:"they keep their distance for 15 seconds",
+    apply(){ wardTimer = 15000; buffNote("warded"); } },
+
+  { name:"Long Dawn",
+    desc:"the next morning lasts twice as long",
+    apply(){ longDawn = true; buffNote("long dawn"); } }
+];
+
+let burnMultiplier = 1;
+let doubleAnswers = 0;
+let wardTimer = 0;
+let longDawn = false;
+let maxHealth = MAX_HEALTH;
+let activeBuffs = [];
+
+function buffNote(text){
+  activeBuffs.push(text);
+  if (activeBuffs.length > 4) activeBuffs.shift();
+  document.getElementById("buffline").innerHTML = activeBuffs.join("<br>");
+}
+
+function openWizard(){
+  studying = true;             // reuse the pause flag
+  stickReset();
+
+  // pick two different powers
+  const pool = POWERS.slice();
+  const a = pool.splice(Math.floor(Math.random()*pool.length), 1)[0];
+  const b = pool.splice(Math.floor(Math.random()*pool.length), 1)[0];
+
+  const holder = document.getElementById("wizopts");
+  holder.innerHTML = "";
+  [a, b].forEach(p => {
+    const btn = document.createElement("button");
+    btn.className = "power";
+    btn.innerHTML = p.name + "<small>" + p.desc + "</small>";
+    btn.onclick = () => {
+      p.apply();
+      updateHUD();
+      document.getElementById("wizpick").style.display = "none";
+      studying = false;
+      despawnWizard();
+      wizDoneTonight = true;
+      rollNextWizardNight();
+    };
+    holder.appendChild(btn);
+  });
+
+  document.getElementById("wizpick").style.display = "flex";
+}
+
+function updateWizard(dt, t){
+  if (!wizActive){
+    // he only walks out during the night, and only if he's due
+    if (phase === "night" && wizPending && !wizDoneTonight){
+      wizAppearIn -= dt;
+      if (wizAppearIn <= 0) spawnWizard();
+    }
+    return;
+  }
+
+  wizTimer -= dt;
+  if (wizTimer <= 0){
+    // missed him — he won't be back for a few nights either way
+    despawnWizard();
+    wizDoneTonight = true;
+    rollNextWizardNight();
+    return;
+  }
+
+  wizard.position.y = Math.sin(t*.002)*.12;
+  wizard.rotation.y = Math.atan2(player.x - wizX, player.z - wizZ);
+  wizard.userData.orb.rotation.y += .05;
+  wizLight.position.set(wizX, 2.4, wizZ);
+  wizLight.intensity = 1.5 + Math.sin(t*.005)*.5;
+
+  if (wizTimer < 5000) wizLight.intensity *= (wizTimer/5000);
+
+  if (Math.hypot(player.x - wizX, player.z - wizZ) < 2.4){
+    openWizard();
+  }
+}
+
+
+// =====================================================
+//  GAME STATE
+// =====================================================
+let playing = false, studying = false;
+let phase = "night";
+let nightNumber = 1;
+let dawnProgress = 0, dawnGoal = 5;
+let dawnTimer = 0;
+let fuel = FIRE_MAX;
+let elapsed = 0, lastFrame = 0;
+let spawnTimer = 0, woodTimer = 0;
+let skyBlend = 0;
+
+function fireRadius(){ return (fuel/FIRE_MAX)*FIRE_RADIUS_MAX; }
+
+function resetGame(){
+  clearEnemies(); clearWood();
+  player.x=0; player.z=6; player.facing=0;
+  maxHealth = MAX_HEALTH;
+  player.health=maxHealth; player.hurtTimer=0;
+  fuel = FIRE_MAX; woodHeld = 0;
+  elapsed = 0; spawnTimer = 0; woodTimer = 0;
+  nightNumber = 1; dawnGoal = dawnGoalFor(1); dawnProgress = 0;
+  phase = "night"; skyBlend = 0; dawnTimer = 0;
+  qAsked = 0; qRight = 0; missed = [];
+  burnMultiplier = 1; doubleAnswers = 0; wardTimer = 0; longDawn = false;
+  activeBuffs = []; document.getElementById("buffline").innerHTML = "";
+  despawnWizard();
+  // first visit lands on night 3, 4, or 5
+  nightNumber = 1;
+  wizNextNight = WIZ_NIGHT_MIN + Math.floor(Math.random()*(WIZ_NIGHT_MAX - WIZ_NIGHT_MIN + 1));
+  scheduleWizard();
+  shuffleQueue();
+  for (let i = 0; i < 6; i++) spawnWood();
+  updateHUD();
+}
+
+
+// =====================================================
+//  HUD
+// =====================================================
+function formatTime(ms){
+  const t = ms/1000, m = Math.floor(t/60), s = Math.floor(t%60);
+  return m + ":" + String(s).padStart(2,"0");
+}
+
+function updateHUD(){
+  let hearts = "";
+  for (let i=0;i<maxHealth;i++) hearts += i < player.health ? "♥ " : "♡ ";
+  document.getElementById("hearts").textContent = hearts;
+
+  document.getElementById("firefill").style.width = Math.max(0,(fuel/FIRE_MAX)*100) + "%";
+  document.getElementById("woodline").textContent = "wood: " + woodHeld;
+
+  document.getElementById("clock").innerHTML =
+    '<span class="day">Day ' + nightNumber + '</span>' +
+    '<span class="sep">·</span>' +
+    '<span class="time">' + formatTime(elapsed) + '</span>';
+
+  if (phase === "night"){
+    document.getElementById("phase").textContent = "Night";
+    document.getElementById("dawnfill").style.width = (dawnProgress/dawnGoal)*100 + "%";
+    document.getElementById("dawnlabel").textContent =
+      "until dawn: " + dawnProgress + " / " + dawnGoal;
+  } else {
+    document.getElementById("phase").textContent = "Dawn";
+    document.getElementById("dawnfill").style.width = (dawnTimer/DAWN_DURATION)*100 + "%";
+    document.getElementById("dawnlabel").textContent =
+      "daylight left: " + Math.max(0, Math.ceil(dawnTimer/1000)) + "s";
+  }
+}
+
+let warnTimer = 0;
+function warn(text){
+  const el = document.getElementById("warn");
+  el.textContent = text; el.style.opacity = 1;
+  warnTimer = 1400;
+}
+
+let bannerTimer = 0;
+function banner(text, color){
+  const el = document.getElementById("banner");
+  el.textContent = text;
+  el.style.color = color || "#fff";
+  el.style.opacity = 1;
+  bannerTimer = 2600;
+}
+
+
+// =====================================================
+//  CONTROLS
+// =====================================================
+const input = { x:0, z:0 };
+const zoneEl = document.getElementById("stickzone");
+const stickEl = document.getElementById("stick");
+const knobEl = document.getElementById("knob");
+let stickId = null;
+const MAX = 42, DEADZONE = .18;
+
+function stickAt(cx,cy){
+  const zr = zoneEl.getBoundingClientRect();
+  stickEl.style.left = (cx - zr.left - 70) + "px";
+  stickEl.style.bottom = (innerHeight - cy - 70) + "px";
+}
+function stickUpdate(cx,cy){
+  const r = stickEl.getBoundingClientRect();
+  let dx = cx-(r.left+r.width/2), dy = cy-(r.top+r.height/2);
+  const d = Math.hypot(dx,dy);
+  if (d > MAX){ dx = dx/d*MAX; dy = dy/d*MAX; }
+  knobEl.style.left = (42+dx)+"px"; knobEl.style.top = (42+dy)+"px";
+  input.x = dx/MAX; input.z = dy/MAX;
+}
+function stickReset(){
+  stickId=null; input.x=0; input.z=0;
+  knobEl.style.left="42px"; knobEl.style.top="42px";
+  stickEl.style.left="30px"; stickEl.style.bottom="40px";
+}
+
+zoneEl.addEventListener("touchstart", e => {
+  e.preventDefault(); const t=e.changedTouches[0];
+  stickId=t.identifier; stickAt(t.clientX,t.clientY); stickUpdate(t.clientX,t.clientY);
+}, {passive:false});
+zoneEl.addEventListener("touchmove", e => {
+  e.preventDefault();
+  const t = Array.from(e.changedTouches).find(t=>t.identifier===stickId);
+  if (t) stickUpdate(t.clientX,t.clientY);
+}, {passive:false});
+addEventListener("touchend", e => {
+  if (Array.from(e.changedTouches).some(t=>t.identifier===stickId)) stickReset();
+});
+addEventListener("touchcancel", stickReset);
+zoneEl.addEventListener("mousedown", e => {
+  stickId="mouse"; stickAt(e.clientX,e.clientY); stickUpdate(e.clientX,e.clientY);
+});
+addEventListener("mousemove", e => { if (stickId==="mouse") stickUpdate(e.clientX,e.clientY); });
+addEventListener("mouseup", () => { if (stickId==="mouse") stickReset(); });
+
+const keys = {};
+addEventListener("keydown", e => {
+  keys[e.key.toLowerCase()] = true;
+  if (e.key.toLowerCase()==="e" || e.key===" "){ openQuiz(); e.preventDefault(); }
+  if (e.key.indexOf("Arrow")===0) e.preventDefault();
+});
+addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
+
+function readKeyboard(){
+  let kx=0,kz=0;
+  if (keys["a"]||keys["arrowleft"]) kx-=1;
+  if (keys["d"]||keys["arrowright"]) kx+=1;
+  if (keys["w"]||keys["arrowup"]) kz-=1;
+  if (keys["s"]||keys["arrowdown"]) kz+=1;
+  if (kx||kz){ input.x=kx; input.z=kz; }
+}
+
+let camAngle=0, dragId=null, dragLastX=0, dragDist=0;
+renderer.domElement.addEventListener("touchstart", e => {
+  const t=e.changedTouches[0]; dragId=t.identifier; dragLastX=t.clientX; dragDist=0;
+});
+renderer.domElement.addEventListener("touchmove", e => {
+  const t = Array.from(e.changedTouches).find(t=>t.identifier===dragId);
+  if (!t) return;
+  const dx = t.clientX - dragLastX;
+  dragDist += Math.abs(dx);
+  if (dragDist > 14) camAngle -= dx*.005;
+  dragLastX = t.clientX;
+});
+renderer.domElement.addEventListener("touchend", () => { dragId=null; });
+
+document.getElementById("study").onclick = openQuiz;
+
+
+// =====================================================
+//  QUIZ + THE CHOICE
+// =====================================================
+let currentQ = null, answered = false;
+
+function openQuiz(){
+  if (!playing || studying || !questions.length) return;
+  currentQ = nextQuestion();
+  answered = false;
+  studying = true;
+  stickReset();
+
+  document.getElementById("qwarn").textContent =
+    phase === "night" ? "the fire keeps burning while you think"
+                      : "daylight is passing while you think";
+  document.getElementById("qtext").textContent = currentQ.q;
+  document.getElementById("qresult").textContent = "";
+  document.getElementById("choice").style.display = "none";
+  document.getElementById("qcont").style.display = "none";
+
+  const holder = document.getElementById("qopts");
+  holder.innerHTML = "";
+  currentQ.options.forEach((opt,i) => {
+    const b = document.createElement("button");
+    b.className = "opt";
+    b.textContent = opt;
+    b.onclick = () => answerQ(i,b);
+    holder.appendChild(b);
+  });
+
+  document.getElementById("quiz").style.display = "flex";
+}
+
+function answerQ(index, btn){
+  if (answered) return;
+  answered = true;
+  qAsked++;
+
+  const opts = document.querySelectorAll("#qopts .opt");
+  opts[currentQ.correct].classList.add("right");
+
+  if (index === currentQ.correct){
+    qRight++;
+    document.getElementById("qresult").textContent = "correct";
+
+    // During dawn there's no dawn to reach, so the second
+    // option becomes something useful for the day instead.
+    const towardBtn = document.getElementById("toward");
+    if (phase === "dawn"){
+      towardBtn.innerHTML = "gather kindling" +
+        "<small>+2 wood — stock up before dark</small>";
+    } else {
+      towardBtn.innerHTML = "count toward dawn" +
+        "<small>+1 progress — gets the night over with</small>";
+    }
+
+    document.getElementById("choice").style.display = "block";
+  } else {
+    btn.classList.add("wrong");
+    document.getElementById("qresult").textContent = "wrong — it'll come back around";
+    requeueSoon(currentQ);
+    if (!missed.some(m => m.q === currentQ.q)) missed.push(currentQ);
+    document.getElementById("qcont").style.display = "inline-block";
+  }
+}
+
+function closeQuiz(){
+  document.getElementById("quiz").style.display = "none";
+  studying = false;
+}
+
+document.getElementById("qcont").onclick = closeQuiz;
+
+document.getElementById("feed").onclick = () => {
+  const mult = doubleAnswers > 0 ? 2 : 1;
+  if (doubleAnswers > 0) doubleAnswers--;
+  fuel = Math.min(FIRE_MAX, fuel + ANSWER_FUEL * mult);
+  updateHUD();
+  closeQuiz();
+  warn(mult === 2 ? "the fire blazes" : "the fire roars up");
+};
+
+document.getElementById("toward").onclick = () => {
+  const mult = doubleAnswers > 0 ? 2 : 1;
+  if (doubleAnswers > 0) doubleAnswers--;
+
+  if (phase === "dawn"){
+    // daylight: no dawn to work toward, so take wood instead
+    woodHeld += 2 * mult;
+    updateHUD();
+    closeQuiz();
+    warn("+" + (2*mult) + " wood");
+    return;
+  }
+
+  dawnProgress += mult;
+  updateHUD();
+  closeQuiz();
+  if (dawnProgress >= dawnGoal) startDawn();
+  else warn(dawnProgress + " / " + dawnGoal + " to dawn");
+};
+
+document.getElementById("feedbtn").onclick = feedOneLog;
+addEventListener("keydown", e => { if (e.key.toLowerCase() === "f") feedOneLog(); });
+
+
+// =====================================================
+//  DAY / NIGHT CYCLE
+// =====================================================
+function startDawn(){
+  if (phase === "dawn") return;   // already morning — don't restart it
+  phase = "dawn";
+  dawnTimer = longDawn ? DAWN_DURATION * 2 : DAWN_DURATION;
+  longDawn = false;
+  banner("DAWN", "#ffe9a8");
+  for (const e of enemies) e.fleeing = true;
+  despawnWizard();
+  for (let i = 0; i < 8; i++) spawnWood();
+  updateHUD();
+}
+
+function startNight(){
+  phase = "night";
+  nightNumber++;
+  dawnGoal = dawnGoalFor(nightNumber);
+  dawnProgress = 0;
+  clearEnemies();
+  // Steady Flame only lasts the night you got it
+  burnMultiplier = 1;
+  wardTimer = 0;
+  activeBuffs = [];
+  document.getElementById("buffline").innerHTML = "";
+  scheduleWizard();
+  if (nightNumber > bestNight) bestNight = nightNumber;
+  banner("NIGHT " + nightNumber, "#ff8a7a");
+  updateHUD();
+}
+
+
+// =====================================================
+//  SIMULATION
+// =====================================================
+function updatePlayer(dt){
+  readKeyboard();
+
+  const fx=Math.sin(camAngle), fz=Math.cos(camAngle);
+  const rx=-Math.cos(camAngle), rz=Math.sin(camAngle);
+  let mx = input.x*rx + (-input.z)*fx;
+  let mz = input.x*rz + (-input.z)*fz;
+  let mag = Math.hypot(mx,mz);
+  if (mag>1){ mx/=mag; mz/=mag; mag=1; }
+  const moving = mag > DEADZONE;
+
+  if (moving){
+    player.x += mx*PLAYER_SPEED;
+    player.z += mz*PLAYER_SPEED;
+    const want = Math.atan2(mx,mz);
+    let diff = want - player.facing;
+    while (diff>Math.PI) diff -= Math.PI*2;
+    while (diff<-Math.PI) diff += Math.PI*2;
+    player.facing += diff*.25;
+  }
+
+  player.x = Math.max(-ARENA+3, Math.min(ARENA-3, player.x));
+  player.z = Math.max(-ARENA+3, Math.min(ARENA-3, player.z));
+
+  if (Math.hypot(player.x, player.z) < 2.1){
+    const a = Math.atan2(player.z, player.x);
+    player.x = Math.cos(a)*2.1;
+    player.z = Math.sin(a)*2.1;
+  }
+
+  if (moving) player.walkCycle += .27;
+  else player.walkCycle *= .85;
+  const swing = Math.sin(player.walkCycle)*.8;
+  legL.rotation.x=swing; legR.rotation.x=-swing;
+  armL.rotation.x=-swing*.75; armR.rotation.x=swing*.75;
+
+  person.position.set(player.x, 0, player.z);
+  person.rotation.y = player.facing;
+
+  if (player.hurtTimer > 0){
+    player.hurtTimer -= dt;
+    person.visible = Math.floor(player.hurtTimer/90) % 2 === 0;
+  } else person.visible = true;
+}
+
+function nearFire(){
+  return Math.hypot(player.x, player.z) < 3.6;
+}
+
+function updateWood(){
+  for (let i = woodItems.length-1; i >= 0; i--){
+    const w = woodItems[i];
+    w.mesh.rotation.y += .006;
+    if (Math.hypot(w.x-player.x, w.z-player.z) < 1.4){
+      scene.remove(w.mesh); scene.remove(w.glow);
+      woodItems.splice(i,1);
+      woodHeld++;
+      updateHUD();
+    }
+  }
+
+  // the FEED button lights up only when it would do something
+  const ready = nearFire() && woodHeld > 0 && fuel < FIRE_MAX;
+  document.getElementById("feedbtn").classList.toggle("ready", ready);
+  document.getElementById("feednum").textContent = woodHeld;
+}
+
+// one log per press — you decide how much to burn and when
+function feedOneLog(){
+  if (!playing || studying) return;
+  if (!nearFire()){ warn("get closer to the fire"); return; }
+  if (woodHeld <= 0){ warn("no wood"); return; }
+  if (fuel >= FIRE_MAX){ warn("fire is already full"); return; }
+  woodHeld--;
+  fuel = Math.min(FIRE_MAX, fuel + WOOD_VALUE);
+  updateHUD();
+}
+
+function updateFire(dt, t){
+  let rate = FIRE_BURN * burnMultiplier;
+  if (phase === "dawn") rate *= FIRE_BURN_DAWN;
+  if (studying) rate *= FIRE_BURN_STUDYING;
+  fuel = Math.max(0, fuel - rate*dt);
+
+  const ratio = fuel/FIRE_MAX;
+  const flick = .85 + Math.sin(t*.02)*.08 + Math.random()*.09;
+  flame.scale.set(.4+ratio*.9, (.35+ratio)*flick, .4+ratio*.9);
+  flame.material.color.setHex(ratio > .35 ? 0xff8a30 : 0x8a3a18);
+  fireLight.intensity = (.25 + ratio*2.6)*flick;
+  fireLight.distance = 8 + ratio*26;
+}
+
+function updateSky(dt){
+  const target = phase === "dawn" ? 1 : 0;
+  skyBlend += (target - skyBlend) * Math.min(1, dt*0.0016);
+
+  const c = NIGHT_SKY.clone().lerp(DAWN_SKY, skyBlend);
+  scene.background.copy(c);
+  scene.fog.color.copy(c);
+  scene.fog.near = 12 + skyBlend*26;
+  scene.fog.far = 46 + skyBlend*60;
+
+  ambient.intensity = .5 + skyBlend*.65;
+  sunLight.intensity = .22 + skyBlend*.85;
+  sunLight.color.setHex(skyBlend > .5 ? 0xffe0b0 : 0x9fb6e8);
+}
+
+function updateEnemies(dt, t){
+  const speed = ENEMY_SPEED_BASE + (nightNumber-1)*ENEMY_SPEED_GROWTH;
+  const safeR = fireRadius();
+
+  if (wardTimer > 0) wardTimer -= dt;
+
+  for (let i = enemies.length-1; i >= 0; i--){
+    const e = enemies[i];
+    const tx = player.x - e.x, tz = player.z - e.z;
+    const distPlayer = Math.hypot(tx,tz) || 1;
+    const distFire = Math.hypot(e.x, e.z);
+
+    let dirX, dirZ;
+
+    if (e.fleeing){
+      const a = Math.atan2(e.z, e.x);
+      dirX = Math.cos(a); dirZ = Math.sin(a);
+      if (distFire > ARENA - 2){
+        scene.remove(e.mesh);
+        enemies.splice(i,1);
+        continue;
+      }
+    } else if (wardTimer > 0 && distPlayer < 16){
+      // the warding keeps them off you
+      dirX = -tx/distPlayer; dirZ = -tz/distPlayer;
+    } else if (distFire < safeR){
+      const a = Math.atan2(e.z, e.x);
+      dirX = Math.cos(a); dirZ = Math.sin(a);
+    } else {
+      dirX = tx/distPlayer; dirZ = tz/distPlayer;
+    }
+
+    const mult = e.fleeing ? 3.2 : 1;
+    e.x += dirX * speed * mult * (dt/16.67);
+    e.z += dirZ * speed * mult * (dt/16.67);
+
+    e.mesh.position.set(e.x, Math.abs(Math.sin(t*.006 + e.bob))*.12, e.z);
+    e.mesh.rotation.y = Math.atan2(dirX, dirZ);
+
+    if (!e.fleeing && distPlayer < 1.25 && player.hurtTimer <= 0){
+      player.health--;
+      player.hurtTimer = HURT_COOLDOWN;
+      warn("hit!");
+      updateHUD();
+      if (player.health <= 0){ gameOver(); return; }
+    }
+  }
+}
+
+function updateSpawning(dt){
+  if (phase === "dawn"){
+    woodTimer += dt;
+    if (woodTimer > 2600 && woodItems.length < 16){
+      woodTimer = 0;
+      spawnWood();
+    }
+    return;
+  }
+
+  const fireFactor = 1 - (fuel/FIRE_MAX)*0.55;
+  const interval = Math.max(650, (4400 - nightNumber*280) * fireFactor);
+
+  spawnTimer += dt;
+  if (spawnTimer > interval && enemies.length < 26){
+    spawnTimer = 0;
+    spawnEnemy();
+  }
+
+  woodTimer += dt;
+  if (woodTimer > 8000 && woodItems.length < 6){
+    woodTimer = 0;
+    spawnWood();
+  }
+}
+
+const camTarget = new THREE.Vector3();
+function updateCamera(){
+  const dist=11, height=8.5;
+  const wx = player.x - Math.sin(camAngle)*dist;
+  const wz = player.z - Math.cos(camAngle)*dist;
+  camera.position.x += (wx-camera.position.x)*.1;
+  camera.position.y += (height-camera.position.y)*.1;
+  camera.position.z += (wz-camera.position.z)*.1;
+  camTarget.set(player.x, 1.2, player.z);
+  camera.lookAt(camTarget);
+}
+
+
+// =====================================================
+//  SCREENS
+// =====================================================
+function setGameUI(on){
+  document.getElementById("hud").style.display = on ? "block" : "none";
+  document.getElementById("stickzone").style.display = on ? "block" : "none";
+  document.getElementById("study").style.display = on ? "flex" : "none";
+  document.getElementById("feedbtn").style.display = on ? "flex" : "none";
+  if (!on) document.getElementById("wizpick").style.display = "none";
+}
+
+function showMenu(){
+  playing = false; studying = false;
+  document.getElementById("menu").style.display = "block";
+  document.getElementById("quiz").style.display = "none";
+  document.getElementById("over").style.display = "none";
+  setGameUI(false);
+  buildMenu();
+}
+
+function startGame(){
+  document.getElementById("menu").style.display = "none";
+  document.getElementById("quiz").style.display = "none";
+  document.getElementById("over").style.display = "none";
+  setGameUI(true);
+  resetGame();
+  stickReset();
+  lastFrame = performance.now();
+  playing = true;
+  banner("NIGHT 1", "#ff8a7a");
+}
+
+function gameOver(){
+  playing = false; studying = false;
+  document.getElementById("quiz").style.display = "none";
+  if (nightNumber > bestNight) bestNight = nightNumber;
+
+  document.getElementById("overnights").textContent = "Night " + nightNumber;
+  document.getElementById("overtime").textContent = "survived " + formatTime(elapsed);
+  document.getElementById("overq").textContent =
+    qAsked === 0 ? "you never studied" : qRight + " of " + qAsked + " questions right";
+  document.getElementById("overbest").textContent = "furthest: night " + bestNight;
+
+  const rev = document.getElementById("review");
+  if (missed.length === 0){
+    rev.innerHTML = '<h3>nothing missed. clean run.</h3>';
+  } else {
+    let html = '<h3>go over these</h3>';
+    for (const m of missed){
+      html += '<div class="miss"><div class="mq">' + m.q + '</div>' +
+              '<div class="ma">' + m.options[m.correct] + '</div></div>';
+    }
+    rev.innerHTML = html;
+  }
+
+  document.getElementById("over").style.display = "flex";
+}
+
+function buildMenu(){
+  const menu = document.getElementById("menu");
+  menu.innerHTML =
+    '<h1>NIGHTFALL</h1><div class="sub">answer your way to morning</div>' +
+
+    '<div class="panel"><h3>How it works</h3><ul>' +
+    '<li>Every right answer is a choice: <b>feed the fire</b> or <b>count toward dawn</b>.</li>' +
+    '<li>Night 1 needs 5 right answers. Every night after needs one more.</li>' +
+    '<li>The fire pushes them back and burns down constantly. Tap FEED to add one log at a time.</li>' +
+    '<li>At dawn they flee. Use the daylight to stock up on wood.</li>' +
+    '<li>A wanderer turns up every few nights. Find him before he leaves.</li>' +
+    '<li>Questions you miss come back around, and you review them at the end.</li>' +
+    '</ul></div>' +
+
+    '<div class="panel"><h3>Your questions</h3>' +
+    '<p>Paste your study material. One question per block, blank line between, ' +
+    'a * in front of the correct answer.</p>' +
+    '<textarea id="qinput" placeholder="What is 2 + 2?&#10;*4&#10;3&#10;5"></textarea>' +
+    '<div class="btnrow">' +
+    '<button class="btn" id="loadbtn">load questions</button>' +
+    '<button class="btn ghost" id="samplebtn">show sample format</button>' +
+    '</div><div id="loadmsg">using ' + questions.length + ' sample questions</div></div>' +
+
+    '<button id="play">begin the first night</button>' +
+    (bestNight > 1 ? '<div id="recordline">furthest: night ' + bestNight + '</div>' : '');
+
+  document.getElementById("play").onclick = startGame;
+  document.getElementById("loadbtn").onclick = () => {
+    const n = loadQuestions(document.getElementById("qinput").value);
+    const msg = document.getElementById("loadmsg");
+    if (n === 0){
+      msg.style.color = "#ff9a8a";
+      msg.textContent = "couldn't read that — each question needs a * on one answer";
+    } else {
+      msg.style.color = "#8ee7b7";
+      msg.textContent = "loaded " + n + " question" + (n===1?"":"s");
+    }
+  };
+  document.getElementById("samplebtn").onclick = () => {
+    document.getElementById("qinput").value = SAMPLE_TEXT;
+  };
+}
+
+document.getElementById("again").onclick = startGame;
+document.getElementById("tomenu").onclick = showMenu;
+
+
+// =====================================================
+//  MAIN LOOP
+// =====================================================
+function animate(t){
+  t = t || 0;
+  const now = performance.now();
+  let dt = now - lastFrame;
+  lastFrame = now;
+  if (dt > 100) dt = 100;
+
+  if (playing){
+    updateSky(dt);
+
+    if (studying){
+      updateFire(dt, t);
+      if (phase === "dawn"){
+        dawnTimer -= dt;
+        if (dawnTimer <= 0) startNight();
+      }
+      updateHUD();
+    } else {
+      elapsed += dt;
+      updatePlayer(dt);
+      updateWood();
+      updateFire(dt, t);
+      updateEnemies(dt, t);
+      updateWizard(dt, t);
+      updateSpawning(dt);
+
+      if (phase === "dawn"){
+        dawnTimer -= dt;
+        if (dawnTimer <= 0) startNight();
+      }
+
+      updateHUD();
+
+      if (warnTimer > 0){
+        warnTimer -= dt;
+        if (warnTimer <= 0) document.getElementById("warn").style.opacity = 0;
+      }
+      if (bannerTimer > 0){
+        bannerTimer -= dt;
+        if (bannerTimer <= 0) document.getElementById("banner").style.opacity = 0;
+      }
+    }
+    updateCamera();
+  }
+
+  flame.rotation.y += .05;
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+
+showMenu();
+animate(0);
+
+
+// =====================================================
+//  APP INSTALL + AUTO-UPDATE
+//
+//  The service worker checks for a new version whenever
+//  the app opens or comes back to the foreground. When
+//  one shows up we swap to it immediately if the player
+//  is on the menu, or offer a banner if they're mid-run
+//  so we don't yank a game out from under them.
+// =====================================================
+let swReg = null;
+let updateReady = false;
+
+if ("serviceWorker" in navigator) {
+  addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").then(reg => {
+      swReg = reg;
+
+      // a new version finished downloading
+      reg.addEventListener("updatefound", () => {
+        const fresh = reg.installing;
+        if (!fresh) return;
+        fresh.addEventListener("statechange", () => {
+          if (fresh.state === "installed" && navigator.serviceWorker.controller) {
+            updateReady = true;
+            handleUpdateReady();
+          }
+        });
+      });
+
+      checkForUpdate();
+    }).catch(err => console.log("service worker failed:", err));
+
+    // when the new worker takes over, reload once to run the new code
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloaded) return;
+      reloaded = true;
+      location.reload();
+    });
+  });
+}
+
+function checkForUpdate(){
+  if (swReg) swReg.update().catch(() => {});
+}
+
+// check again every time the app comes back to the front,
+// and every two minutes while it's open
+addEventListener("visibilitychange", () => {
+  if (!document.hidden) checkForUpdate();
+});
+setInterval(checkForUpdate, 120000);
+
+function applyUpdate(){
+  if (swReg && swReg.waiting) swReg.waiting.postMessage("SKIP_WAITING");
+  else location.reload();
+}
+
+function handleUpdateReady(){
+  // not mid-run? just take it silently
+  if (!playing) { applyUpdate(); return; }
+
+  if (document.getElementById("updbar")) return;
+  const bar = document.createElement("div");
+  bar.id = "updbar";
+  bar.textContent = "new version ready — tap to update";
+  bar.style.cssText =
+    "position:fixed;bottom:0;left:0;right:0;z-index:40;padding:13px;" +
+    "text-align:center;font-size:14px;font-weight:bold;color:#2b1a0c;" +
+    "background:#ffd166;font-family:'Trebuchet MS',sans-serif;";
+  bar.onclick = applyUpdate;
+  document.body.appendChild(bar);
+}
+
+
+// ---- the install prompt (Android / Chrome) ----
+let installPrompt = null;
+
+addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  installPrompt = e;
+  showInstallButton();
+});
+
+function showInstallButton(){
+  if (!installPrompt) return;
+  if (document.getElementById("installbtn")) return;
+
+  const menu = document.getElementById("menu");
+  if (!menu || menu.style.display === "none") return;
+
+  const btn = document.createElement("button");
+  btn.id = "installbtn";
+  btn.textContent = "install as an app";
+  btn.style.cssText =
+    "display:block;width:100%;padding:14px;margin-top:12px;font-size:15px;" +
+    "font-weight:bold;border:2px solid rgba(255,157,77,.7);border-radius:28px;" +
+    "background:rgba(255,157,77,.14);color:#fff;";
+  btn.onclick = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    if (choice.outcome === "accepted") btn.remove();
+    installPrompt = null;
+  };
+  menu.appendChild(btn);
+}
+
+// the menu gets rebuilt a lot, so re-add the button after each rebuild
+const _buildMenu = buildMenu;
+buildMenu = function(){
+  _buildMenu();
+  showInstallButton();
+};
+</script>
+
+</body>
+</html>
